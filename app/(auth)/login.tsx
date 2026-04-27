@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, KeyboardAvoidingView, Platform,
@@ -18,6 +18,13 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [name, setName]         = useState('');
   const [loading, setLoading]   = useState(false);
+
+  // If already logged in, go straight to the app
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) router.replace('/(tabs)');
+    }).catch(() => {});
+  }, []);
 
   async function handleSubmit() {
     if (!email || !password) return;
