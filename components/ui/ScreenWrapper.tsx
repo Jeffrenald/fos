@@ -3,14 +3,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '@/constants/Colors';
 
 interface ScreenWrapperProps {
-  children:     React.ReactNode;
-  scrollable?:  boolean;
-  style?:       ViewStyle;
-  noPadding?:   boolean;
+  children:       React.ReactNode;
+  scrollable?:    boolean;
+  style?:         ViewStyle;
+  noPadding?:     boolean;
+  refreshControl?: React.ReactElement;
 }
 
-export function ScreenWrapper({ children, scrollable, style, noPadding }: ScreenWrapperProps) {
-  const insets = useSafeAreaInsets();
+export function ScreenWrapper({ children, scrollable, style, noPadding, refreshControl }: ScreenWrapperProps) {
+  const insets  = useSafeAreaInsets();
   const padding = noPadding ? 0 : Spacing.screenPadding;
 
   if (scrollable) {
@@ -23,6 +24,7 @@ export function ScreenWrapper({ children, scrollable, style, noPadding }: Screen
           style,
         ]}
         showsVerticalScrollIndicator={false}
+        refreshControl={refreshControl}
       >
         {children}
       </ScrollView>

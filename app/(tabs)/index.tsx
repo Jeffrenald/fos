@@ -1,116 +1,265 @@
-import { View, Text, StyleSheet } from 'react-native';
-import { Colors, Spacing } from '@/constants/Colors';
+import { useEffect, useState, useCallback } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
+import { router } from 'expo-router';
+import { Colors, Spacing, Radius } from '@/constants/Colors';
 import { FontSize } from '@/constants/fonts';
 import { i18n } from '@/lib/i18n';
 import { useUserStore } from '@/stores/userStore';
+import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/Card';
 import { Tag } from '@/components/ui/Tag';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
+import { HAITIAN_PROVERBS } from '@/constants/haitian-foods-db';
+import { WORKOUT_TEMPLATES } from '@/constants/exercises';
 
-function getGreeting(): string {
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function getGreeting(name: string): string {
   const hour = new Date().getHours();
-  return hour < 12 ? i18n.t('home.greetingMorning') : i18n.t('home.greetingEvening');
+  const greet = hour < 12 ? i18n.t('home.greetingMorning') : i18n.t('home.greetingEvening');
+  return `${greet}, ${name} 👋`;
 }
+
+function todayStr() {
+  return new Date().toISOString().split('T')[0];
+}
+
+function thisWeekStart() {
+  const d = new Date();
+  d.setDate(d.getDate() - d.getDay());
+  return d.toISOString().split('T')[0];
+}
+
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+// ─── Stats hook ───────────────────────────────────────────────────────────────
+
+interface HomeStats {
+  sessionsThisWeek: number;
+  totalVolume:      number;
+  streak:           number;
+}
+
+function useHomeStats(userId: string | undefined) {
+  const [stats, setStats]         = useState<HomeStats>({ sessionsThisWeek: 0, totalVolume: 0, streak: 0 });
+  const [loading, setLoading]     = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetch = useCallback(async () => {
+    if (!userId) { setLoading(false); return; }
+    try {
+      const { data: sessions } = await supabase
+        .from('workout_sessions')
+        .select('started_at, total_volume_kg, completed_at')
+        .eq('user_id', userId)
+        .not('completed_at', 'is', null)
+        .order('started_at', { ascending: false });
+
+      if (!sessions) return;
+
+      const weekStart = thisWeekStart();
+      const sessionsWeek = sessions.filter(s => s.started_at >= weekStart).length;
+      const volume = sessions
+        .filter(s => s.started_at >= weekStart)
+        .reduce((sum, s) => sum + (s.total_volume_kg ?? 0), 0);
+
+      // Streak: count consecutive days with sessions
+      let streak = 0;
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const sessionDays = new Set(sessions.map(s => s.started_at.split('T')[0]));
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(today); d.setDate(d.getDate() - i);
+        if (sessionDays.has(d.toISOString().split('T')[0])) streak++;
+        else if (i > 0) break;
+      }
+
+      setStats({ sessionsThisWeek: sessionsWeek, totalVolume: Math.round(volume), streak });
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [userId]);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  const refresh = useCallback(() => { setRefreshing(true); fetch(); }, [fetch]);
+
+  return { stats, loading, refreshing, refresh };
+}
+
+// ─── Screen ──────────────────────────────────────────────────────────────────
 
 export default function HomeScreen() {
   const user = useUserStore(s => s.user);
+  const { stats, refreshing, refresh } = useHomeStats(user?.id);
 
+  const proverb = HAITIAN_PROVERBS[new Date().getDay() % HAITIAN_PROVERBS.length];
   const firstName = user?.name?.split(' ')[0] ?? 'Sak pase';
+  const todayDay  = DAYS[new Date().getDay()];
+
+  function startQuickWorkout(templateKey: string) {
+    const sessionId = `${templateKey}-${Date.now()}`;
+    router.push(`/workout/${sessionId}?template=${templateKey}`);
+  }
 
   return (
-    <ScreenWrapper scrollable>
-
-      {/* Header */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.greeting}>{getGreeting()}, {firstName} 👋</Text>
-          <Text style={styles.subGreeting}>Prêt à antrene jodi a?</Text>
+    <ScreenWrapper
+      scrollable
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.teal} />}
+    >
+      {/* ── Header ── */}
+      <View style={s.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={s.greeting}>{getGreeting(firstName)}</Text>
+          <Text style={s.subGreeting}>
+            {user?.goal === 'muscle'       ? 'Building strong, jodi a.'  :
+             user?.goal === 'weight_loss'  ? 'Stay consistent, ti pa ti pa.' :
+             user?.goal === 'toned'        ? 'Fòs ak estil — let\'s go.'  :
+                                             'Every session counts.'}
+          </Text>
         </View>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{firstName[0]?.toUpperCase()}</Text>
+        <View style={s.avatar}>
+          <Text style={s.avatarText}>{firstName[0]?.toUpperCase()}</Text>
         </View>
       </View>
 
-      {/* Streak card */}
-      <Card style={styles.streakCard}>
-        <View style={styles.streakRow}>
-          <Text style={styles.streakFire}>🔥</Text>
-          <View>
-            <Text style={styles.streakCount}>0 <Text style={styles.streakLabel}>{i18n.t('home.streak')}</Text></Text>
-            <Text style={styles.streakMotto}>{i18n.t('home.streakMotto')}</Text>
+      {/* ── Streak card ── */}
+      <Card style={s.streakCard}>
+        <View style={s.streakRow}>
+          <Text style={s.streakFire}>🔥</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.streakCount}>
+              {stats.streak}{' '}
+              <Text style={s.streakLabel}>{i18n.t('home.streak')}</Text>
+            </Text>
+            <Text style={s.streakMotto}>"{proverb.ht}"</Text>
+            <Text style={s.streakTranslation}>{proverb.en}</Text>
           </View>
-          <Tag label="Top —%" variant="teal" style={styles.streakTag} />
+          {stats.streak > 0 && <Tag label="🔥 Active" variant="teal" />}
         </View>
       </Card>
 
-      {/* Stats 2×2 */}
-      <View style={styles.statsGrid}>
-        {[
-          { label: i18n.t('home.sessionsWeek'), value: '0' },
-          { label: i18n.t('home.totalVolume'),  value: '0 kg' },
-          { label: i18n.t('home.todayKcal'),    value: '0 kcal' },
-          { label: i18n.t('home.weightProgress'), value: '—' },
-        ].map((stat) => (
-          <Card key={stat.label} style={styles.statCard}>
-            <Text style={styles.statValue}>{stat.value}</Text>
-            <Text style={styles.statLabel}>{stat.label}</Text>
-          </Card>
-        ))}
+      {/* ── Stats 2×2 ── */}
+      <View style={s.statsGrid}>
+        <Card style={s.statCard}>
+          <Text style={s.statValue}>{stats.sessionsThisWeek}</Text>
+          <Text style={s.statLabel}>{i18n.t('home.sessionsWeek')}</Text>
+        </Card>
+        <Card style={s.statCard}>
+          <Text style={s.statValue}>{stats.totalVolume > 0 ? `${stats.totalVolume}kg` : '—'}</Text>
+          <Text style={s.statLabel}>{i18n.t('home.totalVolume')}</Text>
+        </Card>
+        <Card style={s.statCard}>
+          <Text style={s.statValue}>—</Text>
+          <Text style={s.statLabel}>{i18n.t('home.todayKcal')}</Text>
+        </Card>
+        <Card style={s.statCard}>
+          <Text style={s.statValue}>—</Text>
+          <Text style={s.statLabel}>{i18n.t('home.weightProgress')}</Text>
+        </Card>
       </View>
 
-      {/* Today's workout placeholder */}
-      <Card style={styles.workoutCard}>
-        <View style={styles.workoutHeader}>
-          <Text style={styles.workoutTitle}>{i18n.t('home.todaysWorkout')}</Text>
-          <Tag label="— min" variant="teal" />
-        </View>
-        <Text style={styles.workoutSub}>Complete onboarding to generate your first plan.</Text>
-      </Card>
+      {/* ── Quick Start Workouts ── */}
+      <Text style={s.sectionTitle}>Start a Workout</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.templateScroll}>
+        {Object.entries(WORKOUT_TEMPLATES).map(([key, tmpl]) => (
+          <TouchableOpacity
+            key={key}
+            style={s.templateCard}
+            onPress={() => startQuickWorkout(key)}
+            activeOpacity={0.8}
+          >
+            <Text style={s.templateEmoji}>{tmpl.emoji}</Text>
+            <Text style={s.templateName}>{tmpl.name}</Text>
+            <Text style={s.templateCount}>{tmpl.exerciseIds.length} exercises</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
 
-      {/* Week plan placeholder */}
-      <Text style={styles.sectionTitle}>{i18n.t('home.weekPlan')}</Text>
-      {['Mon','Tue','Wed','Thu','Fri','Sat','Sun'].map((day) => (
-        <Card key={day} style={styles.dayRow}>
-          <Text style={styles.dayLabel}>{day}</Text>
-          <Text style={styles.dayValue}>—</Text>
-        </Card>
-      ))}
-
+      {/* ── Week plan ── */}
+      <Text style={[s.sectionTitle, { marginTop: 8 }]}>{i18n.t('home.weekPlan')}</Text>
+      {DAYS.map((day) => {
+        const isToday = day === todayDay;
+        return (
+          <Card key={day} style={[s.dayRow, isToday && s.dayRowToday]}>
+            <View style={[s.dayBadge, isToday && s.dayBadgeToday]}>
+              <Text style={[s.dayBadgeText, isToday && s.dayBadgeTextToday]}>{day}</Text>
+            </View>
+            <Text style={[s.dayValue, isToday && { color: Colors.textPrimary }]}>
+              {isToday ? 'Start a workout →' : '—'}
+            </Text>
+            {isToday && (
+              <TouchableOpacity
+                style={s.startBtn}
+                onPress={() => startQuickWorkout('push')}
+                activeOpacity={0.8}
+              >
+                <Text style={s.startBtnText}>Go</Text>
+              </TouchableOpacity>
+            )}
+          </Card>
+        );
+      })}
     </ScreenWrapper>
   );
 }
 
-const styles = StyleSheet.create({
-  header:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  greeting:      { color: Colors.textPrimary, fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
-  subGreeting:   { color: Colors.textMuted, fontSize: FontSize.caption, marginTop: 2 },
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
+const s = StyleSheet.create({
+  header:       { flexDirection: 'row', alignItems: 'center', marginBottom: 20, gap: 12 },
+  greeting:     { color: Colors.textPrimary, fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
+  subGreeting:  { color: Colors.textMuted,   fontSize: FontSize.caption, marginTop: 3, fontStyle: 'italic' },
   avatar: {
     width: 44, height: 44, borderRadius: 22,
     backgroundColor: Colors.teal,
     alignItems: 'center', justifyContent: 'center',
   },
-  avatarText:    { color: Colors.background, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium' },
+  avatarText:   { color: Colors.background, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium' },
 
-  streakCard:    { marginBottom: Spacing.cardGap },
-  streakRow:     { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  streakFire:    { fontSize: 28 },
-  streakCount:   { color: Colors.textPrimary, fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
-  streakLabel:   { color: Colors.textMuted, fontSize: FontSize.body, fontFamily: 'Inter_400Regular' },
-  streakMotto:   { color: Colors.textMuted, fontSize: FontSize.caption, marginTop: 2, fontStyle: 'italic' },
-  streakTag:     { marginLeft: 'auto' },
+  streakCard:       { marginBottom: Spacing.cardGap },
+  streakRow:        { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  streakFire:       { fontSize: 32 },
+  streakCount:      { color: Colors.textPrimary, fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
+  streakLabel:      { color: Colors.textMuted,   fontSize: FontSize.body, fontFamily: 'Inter_400Regular' },
+  streakMotto:      { color: Colors.textSecondary, fontSize: FontSize.caption, marginTop: 4, fontStyle: 'italic' },
+  streakTranslation: { color: Colors.textDim,     fontSize: FontSize.caption },
 
-  statsGrid:     { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.cardGap, marginBottom: Spacing.cardGap },
-  statCard:      { flex: 1, minWidth: '45%' },
-  statValue:     { color: Colors.textPrimary, fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
-  statLabel:     { color: Colors.textMuted, fontSize: FontSize.caption, marginTop: 4 },
+  statsGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.cardGap, marginBottom: 20 },
+  statCard:     { flex: 1, minWidth: '45%' },
+  statValue:    { color: Colors.textPrimary, fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
+  statLabel:    { color: Colors.textMuted,   fontSize: FontSize.caption, marginTop: 4 },
 
-  workoutCard:   { marginBottom: Spacing.cardGap },
-  workoutHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  workoutTitle:  { color: Colors.textPrimary, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium' },
-  workoutSub:    { color: Colors.textMuted, fontSize: FontSize.bodySm },
+  sectionTitle: { color: Colors.textPrimary, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium', marginBottom: 12 },
 
-  sectionTitle:  { color: Colors.textPrimary, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium', marginBottom: 10, marginTop: 6 },
-  dayRow:        { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, paddingVertical: 12 },
-  dayLabel:      { color: Colors.textSecondary, fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
-  dayValue:      { color: Colors.textMuted, fontSize: FontSize.body },
+  templateScroll: { marginBottom: 20, overflow: 'visible' },
+  templateCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 18, borderWidth: 0.5, borderColor: Colors.border,
+    padding: 16, marginRight: 12, width: 130, alignItems: 'center', gap: 6,
+  },
+  templateEmoji: { fontSize: 30 },
+  templateName:  { color: Colors.textPrimary, fontSize: FontSize.body, fontFamily: 'Inter_500Medium', textAlign: 'center' },
+  templateCount: { color: Colors.textMuted,   fontSize: FontSize.caption },
+
+  dayRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginBottom: 8, paddingVertical: 12,
+  },
+  dayRowToday:       { borderColor: Colors.tealBorder, backgroundColor: Colors.tealDim },
+  dayBadge: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: Colors.surfaceRaised,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  dayBadgeToday:     { backgroundColor: Colors.teal },
+  dayBadgeText:      { color: Colors.textMuted,   fontSize: FontSize.caption, fontFamily: 'Inter_500Medium' },
+  dayBadgeTextToday: { color: Colors.background },
+  dayValue:          { color: Colors.textMuted, fontSize: FontSize.body, flex: 1 },
+  startBtn: {
+    backgroundColor: Colors.teal, borderRadius: Radius.sm,
+    paddingHorizontal: 14, paddingVertical: 6,
+  },
+  startBtnText: { color: Colors.background, fontSize: FontSize.caption, fontFamily: 'Inter_500Medium' },
 });
+
