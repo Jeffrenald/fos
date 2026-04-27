@@ -1,11 +1,8 @@
-import { useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { router } from 'expo-router';
+import { View, Text, StyleSheet } from 'react-native';
 import { Colors, Spacing } from '@/constants/Colors';
 import { FontSize } from '@/constants/fonts';
 import { i18n } from '@/lib/i18n';
 import { useUserStore } from '@/stores/userStore';
-import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/Card';
 import { Tag } from '@/components/ui/Tag';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
@@ -16,15 +13,7 @@ function getGreeting(): string {
 }
 
 export default function HomeScreen() {
-  const user        = useUserStore(s => s.user);
-  const isOnboarded = useUserStore(s => s.isOnboarded);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) { router.replace('/(auth)/login'); return; }
-      if (!isOnboarded)  { router.replace('/(auth)/onboarding'); return; }
-    });
-  }, [isOnboarded]);
+  const user = useUserStore(s => s.user);
 
   const firstName = user?.name?.split(' ')[0] ?? 'Sak pase';
 
