@@ -2,12 +2,12 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { i18n } from '../../lib/i18n';
 
-// Phase 1 — Week 3: Home / Lakay screen
-export default function HomeScreen() {
+// Phase 1 — Week 3: Workout / Train screen
+export default function WorkoutScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>{i18n.t('home.greetingMorning')}</Text>
-      <Text style={styles.sub}>Fòs — Home Screen (Week 3)</Text>
+      <Text style={styles.heading}>{i18n.t('nav.workout')}</Text>
+      <Text style={styles.sub}>Workout Screen — Week 3</Text>
     </View>
   );
 }

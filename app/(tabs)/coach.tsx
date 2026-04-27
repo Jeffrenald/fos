@@ -2,18 +2,18 @@ import { View, Text, StyleSheet } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { i18n } from '../../lib/i18n';
 
-// Phase 1 — Week 3: Home / Lakay screen
-export default function HomeScreen() {
+// Phase 2 — Week 5: Kouraj AI Chat screen
+export default function CoachScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>{i18n.t('home.greetingMorning')}</Text>
-      <Text style={styles.sub}>Fòs — Home Screen (Week 3)</Text>
+      <Text style={styles.heading}>{i18n.t('coach.title')}</Text>
+      <Text style={styles.sub}>Kouraj AI Coach — Phase 2 (Week 5)</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background, alignItems: 'center', justifyContent: 'center', padding: 20 },
-  heading:   { color: Colors.textPrimary, fontSize: 24, fontWeight: '500', marginBottom: 8 },
+  heading:   { color: Colors.teal, fontSize: 24, fontWeight: '500', marginBottom: 8 },
   sub:       { color: Colors.textMuted, fontSize: 14 },
 });
