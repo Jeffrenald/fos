@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Radius } from '../../constants/colors';
-import { FontSize } from '../../constants/fonts';
+import { Colors, Radius } from '@/constants/Colors';
+import { FontSize } from '@/constants/fonts';
 
 type TagVariant = 'teal' | 'haitian' | 'muted';
 

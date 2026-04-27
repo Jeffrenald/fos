@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../constants/colors';
+import { Colors } from '@/constants/Colors';
 
 // Phase 1 — Week 2: full 4-step onboarding flow
 export default function OnboardingScreen() {

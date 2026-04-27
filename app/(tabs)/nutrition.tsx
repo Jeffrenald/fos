@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../constants/colors';
-import { i18n } from '../../lib/i18n';
+import { Colors } from '@/constants/Colors';
+import { i18n } from '@/lib/i18n';
 
 // Phase 3 — Week 9: Nutrition / Manje screen
 export default function NutritionScreen() {

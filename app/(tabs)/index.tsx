@@ -1,14 +1,14 @@
 import { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import { router } from 'expo-router';
-import { Colors, Spacing } from '../../constants/colors';
-import { FontSize } from '../../constants/fonts';
-import { i18n } from '../../lib/i18n';
-import { useUserStore } from '../../stores/userStore';
-import { supabase } from '../../lib/supabase';
-import { Card } from '../../components/ui/Card';
-import { Tag } from '../../components/ui/Tag';
-import { ScreenWrapper } from '../../components/ui/ScreenWrapper';
+import { Colors, Spacing } from '@/constants/Colors';
+import { FontSize } from '@/constants/fonts';
+import { i18n } from '@/lib/i18n';
+import { useUserStore } from '@/stores/userStore';
+import { supabase } from '@/lib/supabase';
+import { Card } from '@/components/ui/Card';
+import { Tag } from '@/components/ui/Tag';
+import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
 
 function getGreeting(): string {
   const hour = new Date().getHours();

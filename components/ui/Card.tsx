@@ -1,5 +1,5 @@
 import { View, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Radius, Spacing } from '../../constants/colors';
+import { Colors, Radius, Spacing } from '@/constants/Colors';
 
 interface CardProps {
   children: React.ReactNode;

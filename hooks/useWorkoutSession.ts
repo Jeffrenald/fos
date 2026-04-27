@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useWorkoutStore } from '../stores/workoutStore';
+import { useWorkoutStore } from '@/stores/workoutStore';
 
 export function useRestTimer() {
   const { session, tickRest } = useWorkoutStore();

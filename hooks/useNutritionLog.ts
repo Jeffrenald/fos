@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNutritionStore, FoodEntry } from '../stores/nutritionStore';
+import { useNutritionStore, FoodEntry } from '@/stores/nutritionStore';
 
 function toDateString(date: Date): string {
   return date.toISOString().split('T')[0];

@@ -1,6 +1,6 @@
 import { TouchableOpacity, Text, ActivityIndicator, StyleSheet, ViewStyle, TextStyle } from 'react-native';
-import { Colors, Radius } from '../../constants/colors';
-import { FontSize } from '../../constants/fonts';
+import { Colors, Radius } from '@/constants/Colors';
+import { FontSize } from '@/constants/fonts';
 
 type Variant = 'primary' | 'ghost' | 'danger';
 

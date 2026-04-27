@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { Colors } from '../../constants/colors';
-import { i18n } from '../../lib/i18n';
+import { Colors } from '@/constants/Colors';
+import { i18n } from '@/lib/i18n';
 
 // Phase 1 — Week 3: Active workout session screen
 export default function WorkoutSessionScreen() {

@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { askKouraj, KourajMessage } from '../lib/anthropic';
-import { useUserStore } from '../stores/userStore';
+import { askKouraj, KourajMessage } from '@/lib/anthropic';
+import { useUserStore } from '@/stores/userStore';
 
 export function useKouraj() {
   const user = useUserStore(s => s.user);

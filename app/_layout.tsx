@@ -3,8 +3,8 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Inter_400Regular, Inter_500Medium, useFonts } from '@expo-google-fonts/inter';
-import { supabase } from '../lib/supabase';
-import { useUserStore } from '../stores/userStore';
+import { supabase } from '@/lib/supabase';
+import { useUserStore } from '@/stores/userStore';
 import type { Session } from '@supabase/supabase-js';
 
 export { ErrorBoundary } from 'expo-router';

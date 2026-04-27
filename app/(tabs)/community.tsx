@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { Colors } from '../../constants/colors';
-import { i18n } from '../../lib/i18n';
+import { Colors } from '@/constants/Colors';
+import { i18n } from '@/lib/i18n';
 
 // Phase 4 — Week 12: Community / Kominote screen
 export default function CommunityScreen() {

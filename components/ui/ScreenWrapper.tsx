@@ -1,6 +1,6 @@
 import { View, ScrollView, StyleSheet, ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, Spacing } from '../../constants/colors';
+import { Colors, Spacing } from '@/constants/Colors';
 
 interface ScreenWrapperProps {
   children:     React.ReactNode;

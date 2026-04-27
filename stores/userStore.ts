@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Language, setLanguage } from '../lib/i18n';
+import { Language, setLanguage } from '@/lib/i18n';
 
 export interface UserProfile {
   id:        string;

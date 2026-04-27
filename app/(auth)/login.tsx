@@ -5,10 +5,10 @@ import {
   ScrollView, ActivityIndicator, Alert,
 } from 'react-native';
 import { router } from 'expo-router';
-import { supabase } from '../../lib/supabase';
-import { Colors, Radius, Spacing } from '../../constants/colors';
-import { FontSize } from '../../constants/fonts';
-import { i18n } from '../../lib/i18n';
+import { supabase } from '@/lib/supabase';
+import { Colors, Radius, Spacing } from '@/constants/Colors';
+import { FontSize } from '@/constants/fonts';
+import { i18n } from '@/lib/i18n';
 
 type Mode = 'login' | 'signup';
 
