@@ -1,59 +1,50 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
+import { useEffect, useState } from 'react';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { StatusBar } from 'expo-status-bar';
+import { Inter_400Regular, Inter_500Medium, useFonts } from '@expo-google-fonts/inter';
+import { supabase } from '../lib/supabase';
+import { useUserStore } from '../stores/userStore';
+import type { Session } from '@supabase/supabase-js';
 
-import { useColorScheme } from '@/components/useColorScheme';
-
-export {
-  // Catch any errors thrown by the Layout component.
-  ErrorBoundary,
-} from 'expo-router';
+export { ErrorBoundary } from 'expo-router';
 
 export const unstable_settings = {
-  // Ensure that reloading on `/modal` keeps a back button present.
   initialRouteName: '(tabs)',
 };
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const [loaded, error] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-    ...FontAwesome.font,
-  });
-
-  // Expo Router uses Error Boundaries to catch errors in the navigation tree.
-  useEffect(() => {
-    if (error) throw error;
-  }, [error]);
+  const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium });
+  const [session, setSession]     = useState<Session | null | undefined>(undefined);
+  const isOnboarded               = useUserStore(s => s.isOnboarded);
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => setSession(s));
+    return () => listener.subscription.unsubscribe();
+  }, []);
 
-  if (!loaded) {
-    return null;
-  }
+  useEffect(() => {
+    if (fontError) throw fontError;
+  }, [fontError]);
 
-  return <RootLayoutNav />;
-}
+  useEffect(() => {
+    if (fontsLoaded && session !== undefined) SplashScreen.hideAsync();
+  }, [fontsLoaded, session]);
 
-function RootLayoutNav() {
-  const colorScheme = useColorScheme();
+  if (!fontsLoaded || session === undefined) return null;
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+    <>
+      <StatusBar style="light" />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)"     options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)"     options={{ headerShown: false }} />
+        <Stack.Screen name="workout"    options={{ headerShown: false }} />
+        <Stack.Screen name="+not-found" />
       </Stack>
-    </ThemeProvider>
+    </>
   );
 }

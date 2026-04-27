@@ -1,59 +1,96 @@
-import React from 'react';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Link, Tabs } from 'expo-router';
-import { Pressable } from 'react-native';
+import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '../../constants/colors';
+import { FontSize } from '../../constants/fonts';
+import { i18n } from '../../lib/i18n';
 
-import Colors from '@/constants/Colors';
-import { useColorScheme } from '@/components/useColorScheme';
-import { useClientOnlyValue } from '@/components/useClientOnlyValue';
+type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
+function TabIcon({ name, focused }: { name: IoniconsName; focused: boolean }) {
+  return (
+    <Ionicons
+      name={name}
+      size={22}
+      color={focused ? Colors.teal : Colors.textDim}
+    />
+  );
 }
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
-        headerShown: useClientOnlyValue(false, true),
-      }}>
+        headerShown:           false,
+        tabBarStyle: {
+          backgroundColor:     Colors.background,
+          borderTopColor:      Colors.border,
+          borderTopWidth:      0.5,
+          height:              84,
+          paddingBottom:       24,
+          paddingTop:          10,
+        },
+        tabBarActiveTintColor:   Colors.teal,
+        tabBarInactiveTintColor: Colors.textDim,
+        tabBarLabelStyle: {
+          fontSize:   FontSize.label,
+          fontFamily: 'Inter_400Regular',
+          marginTop:  2,
+        },
+      }}
+    >
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Tab One',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Link href="/modal" asChild>
-              <Pressable>
-                {({ pressed }) => (
-                  <FontAwesome
-                    name="info-circle"
-                    size={25}
-                    color={Colors[colorScheme ?? 'light'].text}
-                    style={{ marginRight: 15, opacity: pressed ? 0.5 : 1 }}
-                  />
-                )}
-              </Pressable>
-            </Link>
-          ),
+          title:    i18n.t('nav.home'),
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'home' : 'home-outline'} focused={focused} />,
         }}
       />
       <Tabs.Screen
-        name="two"
+        name="workout"
         options={{
-          title: 'Tab Two',
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title:    i18n.t('nav.workout'),
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'barbell' : 'barbell-outline'} focused={focused} />,
         }}
       />
+      <Tabs.Screen
+        name="coach"
+        options={{
+          title: i18n.t('nav.coach'),
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'flash' : 'flash-outline'} focused={focused} />,
+          tabBarLabel: 'Kouraj',
+        }}
+      />
+      <Tabs.Screen
+        name="nutrition"
+        options={{
+          title:    i18n.t('nav.nutrition'),
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'restaurant' : 'restaurant-outline'} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="community"
+        options={{
+          title:    i18n.t('nav.community'),
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'people' : 'people-outline'} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="progress"
+        options={{
+          title:    i18n.t('nav.progress'),
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'stats-chart' : 'stats-chart-outline'} focused={focused} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title:    i18n.t('nav.profile'),
+          tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} />,
+        }}
+      />
+
+      {/* Hide template screens from tab bar */}
+      <Tabs.Screen name="two" options={{ href: null }} />
     </Tabs>
   );
 }
