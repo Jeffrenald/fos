@@ -1,13 +1,13 @@
-import { View, ScrollView, StyleSheet, ViewStyle } from 'react-native';
+import { View, ScrollView, StyleSheet, ViewStyle, RefreshControl } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors, Spacing } from '@/constants/Colors';
 
 interface ScreenWrapperProps {
-  children:       React.ReactNode;
-  scrollable?:    boolean;
-  style?:         ViewStyle;
-  noPadding?:     boolean;
-  refreshControl?: React.ReactElement;
+  children:        React.ReactNode;
+  scrollable?:     boolean;
+  style?:          ViewStyle;
+  noPadding?:      boolean;
+  refreshControl?: React.ReactElement<React.ComponentProps<typeof RefreshControl>>;
 }
 
 export function ScreenWrapper({ children, scrollable, style, noPadding, refreshControl }: ScreenWrapperProps) {

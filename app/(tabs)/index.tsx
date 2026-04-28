@@ -181,11 +181,11 @@ export default function HomeScreen() {
       {DAYS.map((day) => {
         const isToday = day === todayDay;
         return (
-          <Card key={day} style={[s.dayRow, isToday && s.dayRowToday]}>
-            <View style={[s.dayBadge, isToday && s.dayBadgeToday]}>
-              <Text style={[s.dayBadgeText, isToday && s.dayBadgeTextToday]}>{day}</Text>
+          <Card key={day} style={isToday ? [s.dayRow, s.dayRowToday] : s.dayRow}>
+            <View style={isToday ? [s.dayBadge, s.dayBadgeToday] : s.dayBadge}>
+              <Text style={isToday ? [s.dayBadgeText, s.dayBadgeTextToday] : s.dayBadgeText}>{day}</Text>
             </View>
-            <Text style={[s.dayValue, isToday && { color: Colors.textPrimary }]}>
+            <Text style={isToday ? [s.dayValue, { color: Colors.textPrimary }] : s.dayValue}>
               {isToday ? 'Start a workout →' : '—'}
             </Text>
             {isToday && (
