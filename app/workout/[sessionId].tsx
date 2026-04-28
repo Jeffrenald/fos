@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
   ScrollView, Alert, Vibration, SafeAreaView,
@@ -11,13 +11,21 @@ import { EXERCISES, WORKOUT_TEMPLATES, Exercise } from '@/constants/exercises';
 import { useUserStore } from '@/stores/userStore';
 import { supabase } from '@/lib/supabase';
 
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+// Extract leading number from defaultReps ('12 each' → '12', '45s' → '45', 'BW' → '')
+function parseDefaultReps(defaultReps: string): string {
+  const match = defaultReps.match(/^(\d+)/);
+  return match ? match[1] : '';
+}
+
 // ─── Types ───────────────────────────────────────────────────────────────────
 
 interface SetLog { weight: string; reps: string; done: boolean; }
 
 // ─── Rest Timer ──────────────────────────────────────────────────────────────
 
-function RestTimer({ seconds, onDone }: { seconds: number; onDone: () => void }) {
+function RestTimer({ seconds, onDone, onSkip }: { seconds: number; onDone: () => void; onSkip: () => void }) {
   const [left, setLeft]       = useState(seconds);
   const [running, setRunning] = useState(true);
   const ref = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -40,32 +48,160 @@ function RestTimer({ seconds, onDone }: { seconds: number; onDone: () => void })
 
   const mins = Math.floor(left / 60);
   const secs = left % 60;
+  const urgent = left < 10;
 
   return (
-    <TouchableOpacity
-      style={timer.wrap}
-      onPress={() => setRunning(r => !r)}
-      activeOpacity={0.8}
-    >
-      <View style={[timer.ring, { borderColor: left < 10 ? Colors.danger : Colors.teal }]}>
-        <Text style={timer.time}>{mins}:{secs.toString().padStart(2, '0')}</Text>
+    <View style={timer.wrap}>
+      <TouchableOpacity
+        style={[timer.ring, { borderColor: urgent ? Colors.danger : Colors.teal }]}
+        onPress={() => setRunning(r => !r)}
+        activeOpacity={0.8}
+      >
+        <Text style={[timer.time, urgent && { color: Colors.danger }]}>
+          {mins}:{secs.toString().padStart(2, '0')}
+        </Text>
         <Text style={timer.tap}>{running ? 'tap to pause' : 'tap to resume'}</Text>
-      </View>
-      <Text style={timer.label}>Rest Timer</Text>
-    </TouchableOpacity>
+      </TouchableOpacity>
+      <TouchableOpacity style={timer.skipBtn} onPress={onSkip} activeOpacity={0.7}>
+        <Text style={timer.skipText}>Skip rest</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
 const timer = StyleSheet.create({
-  wrap:  { alignItems: 'center', paddingVertical: 20 },
+  wrap:    { alignItems: 'center', paddingVertical: 16 },
   ring: {
-    width: 160, height: 160, borderRadius: 80,
+    width: 150, height: 150, borderRadius: 75,
     borderWidth: 4, alignItems: 'center', justifyContent: 'center',
     backgroundColor: Colors.surface,
   },
-  time:  { color: Colors.textPrimary, fontSize: 42, fontFamily: 'Inter_500Medium' },
-  tap:   { color: Colors.textMuted,   fontSize: FontSize.caption, marginTop: 4 },
-  label: { color: Colors.textMuted,   fontSize: FontSize.bodySm, marginTop: 12 },
+  time:    { color: Colors.textPrimary, fontSize: 40, fontFamily: 'Inter_500Medium' },
+  tap:     { color: Colors.textMuted,   fontSize: FontSize.caption, marginTop: 4 },
+  skipBtn: { marginTop: 12, paddingVertical: 6, paddingHorizontal: 20 },
+  skipText:{ color: Colors.textMuted,   fontSize: FontSize.bodySm, textDecorationLine: 'underline' },
+});
+
+// ─── Exercise Overview Panel ─────────────────────────────────────────────────
+
+function ExerciseList({
+  exercises,
+  currentIdx,
+  sets,
+  onJump,
+}: {
+  exercises: Exercise[];
+  currentIdx: number;
+  sets: SetLog[][];
+  onJump: (idx: number) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  const doneSets  = (idx: number) => sets[idx]?.filter(s => s.done).length ?? 0;
+  const totalSets = (idx: number) => sets[idx]?.length ?? 0;
+  const exDone    = (idx: number) => doneSets(idx) === totalSets(idx) && totalSets(idx) > 0;
+
+  return (
+    <View style={el.wrap}>
+      {/* Toggle header */}
+      <TouchableOpacity style={el.header} onPress={() => setExpanded(e => !e)} activeOpacity={0.8}>
+        <Text style={el.headerTitle}>
+          All Exercises
+          <Text style={el.headerCount}>
+            {'  '}{exercises.filter((_, i) => exDone(i)).length}/{exercises.length} done
+          </Text>
+        </Text>
+        <Ionicons
+          name={expanded ? 'chevron-up' : 'chevron-down'}
+          size={18}
+          color={Colors.textMuted}
+        />
+      </TouchableOpacity>
+
+      {/* List */}
+      {expanded && (
+        <View style={el.list}>
+          {exercises.map((ex, i) => {
+            const isCurrent = i === currentIdx;
+            const isDone    = exDone(i);
+            const isPast    = i < currentIdx;
+
+            return (
+              <TouchableOpacity
+                key={ex.id}
+                style={[el.row, isCurrent && el.rowCurrent]}
+                onPress={() => onJump(i)}
+                activeOpacity={0.75}
+              >
+                {/* Status icon */}
+                <View style={[el.iconWrap, isDone && el.iconDone, isCurrent && el.iconCurrent]}>
+                  <Ionicons
+                    name={isDone ? 'checkmark' : isCurrent ? 'arrow-forward' : 'ellipse-outline'}
+                    size={14}
+                    color={isDone || isCurrent ? Colors.background : Colors.textDim}
+                  />
+                </View>
+
+                {/* Name */}
+                <Text style={[
+                  el.exName,
+                  isDone    && el.exNameDone,
+                  isCurrent && el.exNameCurrent,
+                ]} numberOfLines={1}>
+                  {ex.name}
+                </Text>
+
+                {/* Sets progress */}
+                <Text style={[el.setsText, isDone && { color: Colors.teal }]}>
+                  {doneSets(i)}/{totalSets(i)} sets
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      )}
+    </View>
+  );
+}
+
+const el = StyleSheet.create({
+  wrap: {
+    marginHorizontal: Spacing.screenPadding,
+    marginTop: 20,
+    backgroundColor: Colors.surface,
+    borderRadius: Radius.lg,
+    borderWidth: 0.5,
+    borderColor: Colors.border,
+    overflow: 'hidden',
+  },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 14,
+  },
+  headerTitle: { color: Colors.textPrimary, fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
+  headerCount: { color: Colors.textMuted,   fontSize: FontSize.body, fontFamily: 'Inter_400Regular' },
+
+  list:        { borderTopWidth: 0.5, borderTopColor: Colors.border },
+  row: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderBottomWidth: 0.5, borderBottomColor: Colors.borderSubtle,
+  },
+  rowCurrent:     { backgroundColor: Colors.tealDim },
+
+  iconWrap: {
+    width: 24, height: 24, borderRadius: 12,
+    backgroundColor: Colors.surfaceRaised,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  iconDone:    { backgroundColor: Colors.teal },
+  iconCurrent: { backgroundColor: Colors.teal },
+
+  exName:        { flex: 1, color: Colors.textMuted,   fontSize: FontSize.body, fontFamily: 'Inter_400Regular' },
+  exNameDone:    { color: Colors.textDim,   textDecorationLine: 'line-through' },
+  exNameCurrent: { color: Colors.textPrimary, fontFamily: 'Inter_500Medium' },
+
+  setsText:      { color: Colors.textDim, fontSize: FontSize.caption },
 });
 
 // ─── Set Logger ──────────────────────────────────────────────────────────────
@@ -80,37 +216,42 @@ function SetLogger({
 }) {
   return (
     <View>
-      {/* Header row */}
       <View style={sl.headerRow}>
         <Text style={[sl.col, sl.colSet]}>SET</Text>
         <Text style={[sl.col, sl.colKg]}>KG</Text>
         <Text style={[sl.col, sl.colReps]}>REPS</Text>
-        <Text style={[sl.col, sl.colDone]}></Text>
+        <View style={sl.colDone} />
       </View>
 
       {logs.map((log, i) => (
         <View key={i} style={[sl.row, log.done && sl.rowDone]}>
           <Text style={[sl.col, sl.colSet, sl.setNum]}>{i + 1}</Text>
+
+          {/* Weight */}
           <TextInput
             style={[sl.col, sl.colKg, sl.input, log.done && sl.inputDone]}
             value={log.weight}
             onChangeText={v => onUpdate(i, 'weight', v)}
             keyboardType="decimal-pad"
-            placeholder={exercise.defaultReps !== 'BW' ? '0' : 'BW'}
+            placeholder="0"
             placeholderTextColor={Colors.textDim}
             editable={!log.done}
           />
+
+          {/* Reps — pre-filled from defaultReps, editable */}
           <TextInput
             style={[sl.col, sl.colReps, sl.input, log.done && sl.inputDone]}
             value={log.reps}
             onChangeText={v => onUpdate(i, 'reps', v)}
-            keyboardType="number-pad"
+            keyboardType="default"
             placeholder={exercise.defaultReps}
             placeholderTextColor={Colors.textDim}
             editable={!log.done}
           />
+
+          {/* Done checkmark */}
           <TouchableOpacity
-            style={[sl.col, sl.colDone, sl.checkBtn, log.done && sl.checkDone]}
+            style={[sl.colDone, sl.checkBtn, log.done && sl.checkDone]}
             onPress={() => onSetDone(i)}
           >
             <Ionicons
@@ -136,17 +277,16 @@ const sl = StyleSheet.create({
     borderWidth: 0.5, borderColor: Colors.border,
     marginBottom: 8, paddingVertical: 10, paddingHorizontal: 4,
   },
-  rowDone:  { backgroundColor: Colors.tealDim, borderColor: Colors.tealBorder },
-  col:      { textAlign: 'center' },
-  colSet:   { width: 40, color: Colors.textMuted, fontSize: FontSize.caption, fontFamily: 'Inter_500Medium' },
-  colKg:    { flex: 1 },
-  colReps:  { flex: 1 },
-  colDone:  { width: 44, alignItems: 'center' },
-  setNum:   { color: Colors.textSecondary, fontFamily: 'Inter_500Medium' },
+  rowDone:   { backgroundColor: Colors.tealDim, borderColor: Colors.tealBorder },
+  col:       { textAlign: 'center' },
+  colSet:    { width: 40, color: Colors.textMuted, fontSize: FontSize.caption, fontFamily: 'Inter_500Medium' },
+  colKg:     { flex: 1 },
+  colReps:   { flex: 1 },
+  colDone:   { width: 44, alignItems: 'center' },
+  setNum:    { color: Colors.textSecondary, fontFamily: 'Inter_500Medium' },
   input: {
     color: Colors.textPrimary, fontSize: FontSize.bodyLg,
-    fontFamily: 'Inter_500Medium', textAlign: 'center',
-    paddingVertical: 4,
+    fontFamily: 'Inter_500Medium', textAlign: 'center', paddingVertical: 4,
   },
   inputDone: { color: Colors.teal },
   checkBtn: {
@@ -163,7 +303,6 @@ export default function WorkoutSessionScreen() {
   const { sessionId, template } = useLocalSearchParams<{ sessionId: string; template: string }>();
   const user = useUserStore(s => s.user);
 
-  // Build exercise list from template
   const exercises: Exercise[] = (() => {
     const tmpl = WORKOUT_TEMPLATES[template ?? 'push'];
     return tmpl ? tmpl.exerciseIds.map(id => EXERCISES.find(e => e.id === id)!).filter(Boolean) : [];
@@ -171,17 +310,24 @@ export default function WorkoutSessionScreen() {
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [sets, setSets]             = useState<SetLog[][]>(() =>
-    exercises.map(ex => Array.from({ length: ex.defaultSets }, () => ({ weight: '', reps: '', done: false })))
+    // Pre-fill reps from each exercise's defaultReps
+    exercises.map(ex =>
+      Array.from({ length: ex.defaultSets }, () => ({
+        weight: '',
+        reps:   parseDefaultReps(ex.defaultReps),
+        done:   false,
+      }))
+    )
   );
-  const [resting, setResting]       = useState(false);
-  const [startedAt]                 = useState(() => new Date());
-  const [saving, setSaving]         = useState(false);
+  const [resting, setResting] = useState(false);
+  const [startedAt]           = useState(() => new Date());
+  const [saving, setSaving]   = useState(false);
 
-  const current = exercises[currentIdx];
+  const current     = exercises[currentIdx];
   const currentSets = sets[currentIdx] ?? [];
   const allSetsDone = currentSets.length > 0 && currentSets.every(s => s.done);
-  const isLast = currentIdx === exercises.length - 1;
-  const progress = ((currentIdx) / exercises.length) * 100;
+  const isLast      = currentIdx === exercises.length - 1;
+  const progress    = (currentIdx / exercises.length) * 100;
 
   function updateSet(exIdx: number, setIdx: number, field: 'weight' | 'reps', val: string) {
     setSets(prev => {
@@ -192,15 +338,18 @@ export default function WorkoutSessionScreen() {
   }
 
   function markSetDone(setIdx: number) {
+    const alreadyDone = currentSets[setIdx].done;
     setSets(prev => {
       const next = prev.map(s => [...s]);
-      const set = { ...next[currentIdx][setIdx] };
-      set.done = !set.done;
-      next[currentIdx][setIdx] = set;
+      next[currentIdx][setIdx] = { ...next[currentIdx][setIdx], done: !alreadyDone };
       return next;
     });
-    // Auto-start rest timer when set is marked done
-    if (!currentSets[setIdx].done) setResting(true);
+    if (!alreadyDone) setResting(true);
+  }
+
+  function jumpToExercise(idx: number) {
+    setCurrentIdx(idx);
+    setResting(false);
   }
 
   function nextExercise() {
@@ -213,11 +362,11 @@ export default function WorkoutSessionScreen() {
   async function finishSession() {
     setSaving(true);
     try {
-      const endedAt   = new Date();
-      const duration  = Math.round((endedAt.getTime() - startedAt.getTime()) / 1000);
-      const volume    = sets.flat().reduce((sum, s) => {
+      const endedAt  = new Date();
+      const duration = Math.round((endedAt.getTime() - startedAt.getTime()) / 1000);
+      const volume   = sets.flat().reduce((sum, s) => {
         const w = parseFloat(s.weight) || 0;
-        const r = parseInt(s.reps) || 0;
+        const r = parseInt(s.reps)    || 0;
         return sum + w * r;
       }, 0);
 
@@ -241,7 +390,7 @@ export default function WorkoutSessionScreen() {
             muscle_group:  ex.musclesPrimary[0],
             set_number:    setIdx + 1,
             weight_kg:     parseFloat(set.weight) || null,
-            reps:          parseInt(set.reps) || null,
+            reps:          parseInt(set.reps)     || null,
           }))
         );
         await supabase.from('exercise_logs').insert(logs);
@@ -256,9 +405,10 @@ export default function WorkoutSessionScreen() {
   }
 
   function confirmFinish() {
+    const elapsed = Math.round((Date.now() - startedAt.getTime()) / 60000);
     Alert.alert(
       'Finish Session?',
-      `${exercises.length} exercises · ${Math.round((Date.now() - startedAt.getTime()) / 60000)} min`,
+      `${exercises.length} exercises · ${elapsed} min`,
       [
         { text: 'Keep Going', style: 'cancel' },
         { text: 'Finish 💪', onPress: finishSession },
@@ -276,26 +426,33 @@ export default function WorkoutSessionScreen() {
 
   return (
     <SafeAreaView style={screen.root}>
+
       {/* ── Header ── */}
       <View style={screen.header}>
-        <TouchableOpacity onPress={() => Alert.alert('Quit?', 'Session progress will be lost.', [
-          { text: 'Cancel' },
-          { text: 'Quit', style: 'destructive', onPress: () => router.back() },
-        ])}>
+        <TouchableOpacity onPress={() =>
+          Alert.alert('Quit?', 'Session progress will be lost.', [
+            { text: 'Cancel' },
+            { text: 'Quit', style: 'destructive', onPress: () => router.back() },
+          ])
+        }>
           <Ionicons name="close" size={24} color={Colors.textMuted} />
         </TouchableOpacity>
         <View style={{ flex: 1, marginHorizontal: 16 }}>
           <View style={screen.progressBar}>
             <View style={[screen.progressFill, { width: `${progress}%` as any }]} />
           </View>
-          <Text style={screen.progressText}>{currentIdx + 1} / {exercises.length}</Text>
+          <Text style={screen.progressText}>{currentIdx + 1} of {exercises.length} exercises</Text>
         </View>
         <TouchableOpacity onPress={confirmFinish}>
           <Text style={screen.finishLink}>Finish</Text>
         </TouchableOpacity>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={screen.scroll} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={screen.scroll}
+        keyboardShouldPersistTaps="handled"
+      >
         {/* ── Exercise hero ── */}
         <View style={screen.hero}>
           <View style={screen.heroTagRow}>
@@ -314,6 +471,7 @@ export default function WorkoutSessionScreen() {
           <RestTimer
             seconds={current.defaultRest}
             onDone={() => setResting(false)}
+            onSkip={() => setResting(false)}
           />
         )}
 
@@ -327,7 +485,7 @@ export default function WorkoutSessionScreen() {
           />
         </View>
 
-        {/* ── Rest toggle ── */}
+        {/* ── Manual rest trigger ── */}
         {!resting && (
           <TouchableOpacity
             style={screen.restBtn}
@@ -338,6 +496,14 @@ export default function WorkoutSessionScreen() {
             <Text style={screen.restBtnText}>Start {current.defaultRest}s rest</Text>
           </TouchableOpacity>
         )}
+
+        {/* ── Exercise overview (always available, auto-expands during rest) ── */}
+        <ExerciseList
+          exercises={exercises}
+          currentIdx={currentIdx}
+          sets={sets}
+          onJump={jumpToExercise}
+        />
 
         {/* ── Next / Finish ── */}
         <View style={screen.footer}>
@@ -369,29 +535,25 @@ export default function WorkoutSessionScreen() {
 }
 
 const screen = StyleSheet.create({
-  root:  { flex: 1, backgroundColor: Colors.background },
-  scroll: { paddingBottom: 40 },
+  root:   { flex: 1, backgroundColor: Colors.background },
+  scroll: { paddingBottom: 48 },
 
   header: {
     flexDirection: 'row', alignItems: 'center',
     paddingHorizontal: Spacing.screenPadding, paddingVertical: 12,
     borderBottomWidth: 0.5, borderBottomColor: Colors.border,
   },
-  progressBar: {
-    height: 4, backgroundColor: Colors.surfaceRaised,
-    borderRadius: 2, overflow: 'hidden',
-  },
-  progressFill:   { height: 4, backgroundColor: Colors.teal },
-  progressText:   { color: Colors.textMuted, fontSize: FontSize.caption, marginTop: 4 },
-  finishLink:     { color: Colors.teal, fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
+  progressBar:  { height: 4, backgroundColor: Colors.surfaceRaised, borderRadius: 2, overflow: 'hidden' },
+  progressFill: { height: 4, backgroundColor: Colors.teal },
+  progressText: { color: Colors.textMuted, fontSize: FontSize.caption, marginTop: 4 },
+  finishLink:   { color: Colors.teal, fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
 
   hero: {
     backgroundColor: Colors.surface,
     padding: Spacing.screenPadding, paddingTop: 24, paddingBottom: 24,
-    borderBottomWidth: 0.5, borderBottomColor: Colors.border,
-    marginBottom: 20,
+    borderBottomWidth: 0.5, borderBottomColor: Colors.border, marginBottom: 20,
   },
-  heroTagRow:     { flexDirection: 'row', gap: 8, marginBottom: 10 },
+  heroTagRow: { flexDirection: 'row', gap: 8, marginBottom: 10 },
   muscleTag: {
     backgroundColor: Colors.tealDim, paddingHorizontal: 10,
     paddingVertical: 4, borderRadius: Radius.full,
@@ -402,18 +564,18 @@ const screen = StyleSheet.create({
 
   restBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 8,
-    alignSelf: 'center', marginTop: 8, marginBottom: 20,
+    alignSelf: 'center', marginTop: 8,
     backgroundColor: Colors.tealDim, borderRadius: Radius.full,
     paddingHorizontal: 20, paddingVertical: 10,
   },
-  restBtnText:    { color: Colors.teal, fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
+  restBtnText: { color: Colors.teal, fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
 
-  footer:         { paddingHorizontal: Spacing.screenPadding, marginTop: 24 },
+  footer:     { paddingHorizontal: Spacing.screenPadding, marginTop: 20 },
   nextBtn: {
     backgroundColor: Colors.teal, borderRadius: 14,
     paddingVertical: 16, flexDirection: 'row',
     alignItems: 'center', justifyContent: 'center', gap: 8,
   },
-  nextBtnDim:     { opacity: 0.6 },
-  nextBtnText:    { color: Colors.background, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium' },
+  nextBtnDim:  { opacity: 0.6 },
+  nextBtnText: { color: Colors.background, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium' },
 });
