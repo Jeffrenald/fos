@@ -89,8 +89,6 @@ export default function TabLayout() {
         }}
       />
 
-      {/* Hide template screens from tab bar */}
-      <Tabs.Screen name="two" options={{ href: null }} />
     </Tabs>
   );
 }

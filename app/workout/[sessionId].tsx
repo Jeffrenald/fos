@@ -8,6 +8,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Spacing } from '@/constants/Colors';
 import { FontSize } from '@/constants/fonts';
 import { EXERCISES, WORKOUT_TEMPLATES, Exercise } from '@/constants/exercises';
+import { ExerciseAnimation } from '@/components/workout/ExerciseAnimation';
 import { useUserStore } from '@/stores/userStore';
 import { supabase } from '@/lib/supabase';
 
@@ -463,6 +464,10 @@ export default function WorkoutSessionScreen() {
             ))}
           </View>
           <Text style={screen.exerciseName}>{current.name}</Text>
+
+          {/* Stick figure animation */}
+          <ExerciseAnimation type={current.type} size={170} />
+
           <Text style={screen.exerciseTip}>{current.instructions_en}</Text>
         </View>
 
