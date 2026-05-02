@@ -176,52 +176,63 @@ export function VariationSheet({ template, userLevel, visible, onClose, onStart 
 
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={onClose}>
-      {/* Backdrop */}
-      <Pressable style={sheet.backdrop} onPress={onClose} />
+      {/*
+        Outer view fills the whole screen.
+        Pressable (flex:1) fills the space ABOVE the sheet → closes on tap.
+        Sheet sits at the bottom — this is the correct bottom sheet layout.
+      */}
+      <View style={sheet.overlay}>
+        <Pressable style={sheet.backdrop} onPress={onClose} />
 
-      {/* Sheet */}
-      <Animated.View style={[sheet.container, { transform: [{ translateY }] }]}>
-        {/* Handle */}
-        <View style={sheet.handle} />
+        <Animated.View style={[sheet.container, { transform: [{ translateY }] }]}>
+          {/* Handle */}
+          <View style={sheet.handle} />
 
-        {/* Header */}
-        <View style={sheet.header}>
-          <View style={sheet.headerLeft}>
-            <Text style={sheet.emoji}>{template.emoji}</Text>
-            <View>
-              <Text style={sheet.title}>{template.name}</Text>
-              <Text style={sheet.subtitle}>Choose your level</Text>
+          {/* Header */}
+          <View style={sheet.header}>
+            <View style={sheet.headerLeft}>
+              <Text style={sheet.emoji}>{template.emoji}</Text>
+              <View>
+                <Text style={sheet.title}>{template.name}</Text>
+                <Text style={sheet.subtitle}>Choose your level</Text>
+              </View>
             </View>
+            <TouchableOpacity onPress={onClose} style={sheet.closeBtn}>
+              <Ionicons name="close" size={20} color={Colors.textMuted} />
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity onPress={onClose} style={sheet.closeBtn}>
-            <Ionicons name="close" size={20} color={Colors.textMuted} />
-          </TouchableOpacity>
-        </View>
 
-        {/* Variations */}
-        <ScrollView
-          style={sheet.scroll}
-          contentContainerStyle={sheet.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {template.variations.map(v => (
-            <VariationCard
-              key={v.id}
-              variation={v}
-              recommended={v.level === userLevel}
-              onStart={() => { onClose(); onStart(v.id, v.exerciseIds); }}
-            />
-          ))}
-        </ScrollView>
-      </Animated.View>
+          {/* Variations */}
+          <ScrollView
+            style={sheet.scroll}
+            contentContainerStyle={sheet.scrollContent}
+            showsVerticalScrollIndicator={false}
+          >
+            {template.variations.map(v => (
+              <VariationCard
+                key={v.id}
+                variation={v}
+                recommended={v.level === userLevel}
+                onStart={() => { onClose(); onStart(v.id, v.exerciseIds); }}
+              />
+            ))}
+          </ScrollView>
+        </Animated.View>
+      </View>
     </Modal>
   );
 }
 
 const sheet = StyleSheet.create({
+  // fills the entire screen; dark overlay comes from this + backdrop
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  // fills the space ABOVE the sheet so tapping it closes the modal
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
   },
   container: {
     backgroundColor: Colors.background,
