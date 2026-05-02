@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Colors, Radius, Spacing } from '@/constants/Colors';
 import { FontSize } from '@/constants/fonts';
@@ -7,7 +8,8 @@ import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
 import { Card } from '@/components/ui/Card';
 import { WorkoutTemplateCard } from '@/components/workout/WorkoutTemplateCard';
 import { VariationSheet } from '@/components/workout/VariationSheet';
-import { EXERCISES, TEMPLATES, WorkoutTemplate, WorkoutType } from '@/constants/exercises';
+import { ExerciseDetailSheet } from '@/components/workout/ExerciseDetailSheet';
+import { EXERCISES, TEMPLATES, WorkoutTemplate, WorkoutType, Exercise } from '@/constants/exercises';
 import { useUserStore } from '@/stores/userStore';
 import type { Level } from '@/constants/exercises';
 
@@ -23,27 +25,29 @@ const FILTERS: { label: string; value: WorkoutType | 'all' }[] = [
 
 // ─── Exercise row ─────────────────────────────────────────────────────────────
 
-function ExerciseRow({ id }: { id: string }) {
-  const ex = EXERCISES.find(e => e.id === id);
-  if (!ex) return null;
+function ExerciseRow({ exercise, onPress }: { exercise: Exercise; onPress: () => void }) {
   return (
-    <Card style={row.card}>
-      <View style={row.inner}>
-        <View style={{ flex: 1 }}>
-          <Text style={row.name}>{ex.name}</Text>
-          <Text style={row.muscles} numberOfLines={1}>
-            {ex.musclesPrimary.join(' · ')}
-          </Text>
-        </View>
-        <View style={row.metaCol}>
-          <Text style={row.sets}>{ex.defaultSets}×{ex.defaultReps}</Text>
-          <View style={row.typePill}>
-            <Text style={row.typeText}>{ex.type}</Text>
+    <TouchableOpacity onPress={onPress} activeOpacity={0.75}>
+      <Card style={row.card}>
+        <View style={row.inner}>
+          <View style={{ flex: 1 }}>
+            <Text style={row.name}>{exercise.name}</Text>
+            <Text style={row.muscles} numberOfLines={1}>
+              {exercise.musclesPrimary.join(' · ')}
+              {exercise.musclesSecondary.length > 0 && ` · ${exercise.musclesSecondary.join(' · ')}`}
+            </Text>
           </View>
+          <View style={row.metaCol}>
+            <Text style={row.sets}>{exercise.defaultSets}×{exercise.defaultReps}</Text>
+            <View style={row.typePill}>
+              <Text style={row.typeText}>{exercise.type}</Text>
+            </View>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={Colors.textDim} style={{ marginLeft: 4 }} />
         </View>
-      </View>
-      <Text style={row.tip} numberOfLines={2}>{ex.instructions_en}</Text>
-    </Card>
+        <Text style={row.tip} numberOfLines={1}>{exercise.instructions_en}</Text>
+      </Card>
+    </TouchableOpacity>
   );
 }
 
@@ -68,6 +72,8 @@ export default function WorkoutScreen() {
   const [filter, setFilter]              = useState<WorkoutType | 'all'>('all');
   const [selectedTemplate, setSelected]  = useState<WorkoutTemplate | null>(null);
   const [sheetOpen, setSheetOpen]        = useState(false);
+  const [selectedExercise, setExercise]  = useState<Exercise | null>(null);
+  const [detailOpen, setDetailOpen]      = useState(false);
 
   const filtered = filter === 'all'
     ? EXERCISES
@@ -132,7 +138,13 @@ export default function WorkoutScreen() {
         </ScrollView>
 
         {/* Exercise list */}
-        {filtered.map(ex => <ExerciseRow key={ex.id} id={ex.id} />)}
+        {filtered.map(ex => (
+          <ExerciseRow
+            key={ex.id}
+            exercise={ex}
+            onPress={() => { setExercise(ex); setDetailOpen(true); }}
+          />
+        ))}
       </ScreenWrapper>
 
       <VariationSheet
@@ -141,6 +153,12 @@ export default function WorkoutScreen() {
         visible={sheetOpen}
         onClose={() => setSheetOpen(false)}
         onStart={startVariation}
+      />
+
+      <ExerciseDetailSheet
+        exercise={selectedExercise}
+        visible={detailOpen}
+        onClose={() => setDetailOpen(false)}
       />
     </>
   );
