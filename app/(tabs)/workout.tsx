@@ -5,6 +5,7 @@ import { Colors, Radius, Spacing } from '@/constants/Colors';
 import { FontSize } from '@/constants/fonts';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
 import { Card } from '@/components/ui/Card';
+import { WorkoutTemplateCard } from '@/components/workout/WorkoutTemplateCard';
 import { VariationSheet } from '@/components/workout/VariationSheet';
 import { EXERCISES, TEMPLATES, WorkoutTemplate, WorkoutType } from '@/constants/exercises';
 import { useUserStore } from '@/stores/userStore';
@@ -58,53 +59,15 @@ const row = StyleSheet.create({
   tip:     { color: Colors.textMuted,   fontSize: FontSize.caption, lineHeight: 18 },
 });
 
-// ─── Template card (quick start) ─────────────────────────────────────────────
-
-function TemplateCard({ template, onPress }: { template: WorkoutTemplate; onPress: () => void }) {
-  const varCount = template.variations.length;
-  return (
-    <TouchableOpacity style={tmpl.card} onPress={onPress} activeOpacity={0.8}>
-      <Text style={tmpl.emoji}>{template.emoji}</Text>
-      <Text style={tmpl.name}>{template.name}</Text>
-      <Text style={tmpl.meta}>{varCount} levels</Text>
-      <View style={tmpl.levelRow}>
-        {template.variations.map(v => (
-          <View
-            key={v.id}
-            style={[tmpl.levelDot, {
-              backgroundColor:
-                v.level === 'beginner'     ? '#3FCC93' :
-                v.level === 'intermediate' ? Colors.teal : '#FF7A85',
-            }]}
-          />
-        ))}
-      </View>
-    </TouchableOpacity>
-  );
-}
-
-const tmpl = StyleSheet.create({
-  card: {
-    backgroundColor: Colors.surface, borderRadius: 18,
-    borderWidth: 0.5, borderColor: Colors.border,
-    padding: 16, marginRight: 12, width: 140, alignItems: 'center', gap: 6,
-  },
-  emoji:    { fontSize: 32 },
-  name:     { color: Colors.textPrimary, fontSize: FontSize.body, fontFamily: 'Inter_500Medium', textAlign: 'center' },
-  meta:     { color: Colors.textMuted,   fontSize: FontSize.caption },
-  levelRow: { flexDirection: 'row', gap: 4, marginTop: 2 },
-  levelDot: { width: 8, height: 8, borderRadius: 4 },
-});
-
 // ─── Main screen ─────────────────────────────────────────────────────────────
 
 export default function WorkoutScreen() {
   const user = useUserStore(s => s.user);
   const userLevel: Level = (user?.level as Level) ?? 'intermediate';
 
-  const [filter, setFilter]           = useState<WorkoutType | 'all'>('all');
-  const [selectedTemplate, setSelected] = useState<WorkoutTemplate | null>(null);
-  const [sheetOpen, setSheetOpen]       = useState(false);
+  const [filter, setFilter]              = useState<WorkoutType | 'all'>('all');
+  const [selectedTemplate, setSelected]  = useState<WorkoutTemplate | null>(null);
+  const [sheetOpen, setSheetOpen]        = useState(false);
 
   const filtered = filter === 'all'
     ? EXERCISES
@@ -123,19 +86,37 @@ export default function WorkoutScreen() {
   return (
     <>
       <ScreenWrapper scrollable>
+
+        {/* ── Header ── */}
         <Text style={s.heading}>Train 🏋️</Text>
 
         {/* ── Quick start ── */}
         <Text style={s.section}>Quick Start</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 24 }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={s.cardScroll}
+          contentContainerStyle={s.cardScrollContent}
+        >
           {TEMPLATES.map(tmpl => (
-            <TemplateCard key={tmpl.key} template={tmpl} onPress={() => openSheet(tmpl)} />
+            <WorkoutTemplateCard
+              key={tmpl.key}
+              template={tmpl}
+              onPress={() => openSheet(tmpl)}
+            />
           ))}
         </ScrollView>
 
         {/* ── Exercise library ── */}
         <Text style={s.section}>Exercise Library</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
+
+        {/* Filter chips */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={s.chipScroll}
+          contentContainerStyle={s.chipScrollContent}
+        >
           {FILTERS.map(f => (
             <TouchableOpacity
               key={f.value}
@@ -143,15 +124,17 @@ export default function WorkoutScreen() {
               onPress={() => setFilter(f.value as any)}
               activeOpacity={0.8}
             >
-              <Text style={[s.chipText, filter === f.value && s.chipTextActive]}>{f.label}</Text>
+              <Text style={[s.chipText, filter === f.value && s.chipTextActive]}>
+                {f.label}
+              </Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
+        {/* Exercise list */}
         {filtered.map(ex => <ExerciseRow key={ex.id} id={ex.id} />)}
       </ScreenWrapper>
 
-      {/* ── Variation sheet ── */}
       <VariationSheet
         template={selectedTemplate}
         userLevel={userLevel}
@@ -164,12 +147,27 @@ export default function WorkoutScreen() {
 }
 
 const s = StyleSheet.create({
-  heading: { color: Colors.textPrimary, fontSize: FontSize.h1, fontFamily: 'Inter_500Medium', marginBottom: 20 },
-  section: { color: Colors.textPrimary, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium', marginBottom: 12 },
+  heading: {
+    color: Colors.textPrimary,
+    fontSize: FontSize.h1,
+    fontFamily: 'Inter_500Medium',
+    marginBottom: 20,
+  },
+  section: {
+    color: Colors.textPrimary,
+    fontSize: FontSize.bodyLg,
+    fontFamily: 'Inter_500Medium',
+    marginBottom: 14,
+  },
+  cardScroll:        { marginHorizontal: -Spacing.screenPadding },
+  cardScrollContent: { paddingHorizontal: Spacing.screenPadding, paddingBottom: 24 },
+
+  chipScroll:        { marginHorizontal: -Spacing.screenPadding, marginBottom: 16 },
+  chipScrollContent: { paddingHorizontal: Spacing.screenPadding, gap: 8 },
   chip: {
-    paddingHorizontal: 16, paddingVertical: 8,
+    paddingHorizontal: 16, paddingVertical: 9,
     borderRadius: Radius.full, borderWidth: 0.5,
-    borderColor: Colors.border, marginRight: 8,
+    borderColor: Colors.border,
     backgroundColor: Colors.surface,
   },
   chipActive:     { backgroundColor: Colors.tealDim, borderColor: Colors.teal },

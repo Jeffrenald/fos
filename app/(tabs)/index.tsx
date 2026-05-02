@@ -10,6 +10,7 @@ import { Card } from '@/components/ui/Card';
 import { Tag } from '@/components/ui/Tag';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
 import { VariationSheet } from '@/components/workout/VariationSheet';
+import { WorkoutTemplateCard } from '@/components/workout/WorkoutTemplateCard';
 import { HAITIAN_PROVERBS } from '@/constants/haitian-foods-db';
 import { TEMPLATES, WorkoutTemplate } from '@/constants/exercises';
 import type { Level } from '@/constants/exercises';
@@ -173,18 +174,18 @@ export default function HomeScreen() {
 
       {/* ── Quick Start Workouts ── */}
       <Text style={s.sectionTitle}>Start a Workout</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.templateScroll}>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={s.templateScroll}
+        contentContainerStyle={s.templateScrollContent}
+      >
         {TEMPLATES.map(tmpl => (
-          <TouchableOpacity
+          <WorkoutTemplateCard
             key={tmpl.key}
-            style={s.templateCard}
+            template={tmpl}
             onPress={() => openSheet(tmpl)}
-            activeOpacity={0.8}
-          >
-            <Text style={s.templateEmoji}>{tmpl.emoji}</Text>
-            <Text style={s.templateName}>{tmpl.name}</Text>
-            <Text style={s.templateCount}>{tmpl.variations.length} levels</Text>
-          </TouchableOpacity>
+          />
         ))}
       </ScrollView>
 
@@ -253,15 +254,8 @@ const s = StyleSheet.create({
 
   sectionTitle: { color: Colors.textPrimary, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium', marginBottom: 12 },
 
-  templateScroll: { marginBottom: 20, overflow: 'visible' },
-  templateCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 18, borderWidth: 0.5, borderColor: Colors.border,
-    padding: 16, marginRight: 12, width: 130, alignItems: 'center', gap: 6,
-  },
-  templateEmoji: { fontSize: 30 },
-  templateName:  { color: Colors.textPrimary, fontSize: FontSize.body, fontFamily: 'Inter_500Medium', textAlign: 'center' },
-  templateCount: { color: Colors.textMuted,   fontSize: FontSize.caption },
+  templateScroll:        { marginHorizontal: -Spacing.screenPadding, marginBottom: 20 },
+  templateScrollContent: { paddingHorizontal: Spacing.screenPadding },
 
   dayRow: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
