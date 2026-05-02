@@ -250,3 +250,184 @@ export const WORKOUT_TEMPLATES: Record<string, { name: string; type: WorkoutType
     exerciseIds: ['squat', 'bench-press', 'barbell-row', 'shoulder-press', 'lunges', 'plank'],
   },
 };
+
+// ─── Workout Variations ───────────────────────────────────────────────────────
+
+export type Level = 'beginner' | 'intermediate' | 'advanced';
+
+export interface WorkoutVariation {
+  id:          string;
+  level:       Level;
+  label:       string;
+  description: string;
+  exerciseIds: string[];
+  estimatedMin: number;
+  focus:       string;
+}
+
+export interface WorkoutTemplate {
+  key:        string;
+  name:       string;
+  emoji:      string;
+  type:       WorkoutType;
+  variations: WorkoutVariation[];
+}
+
+export const TEMPLATES: WorkoutTemplate[] = [
+  {
+    key: 'push', name: 'Push Day', emoji: '💪', type: 'push',
+    variations: [
+      {
+        id: 'push-beginner', level: 'beginner', label: 'Beginner',
+        description: 'Bodyweight & dumbbells, lighter load',
+        focus: 'Chest · Shoulders · Triceps',
+        estimatedMin: 30,
+        exerciseIds: ['push-up', 'shoulder-press', 'lateral-raises', 'tricep-pushdown'],
+      },
+      {
+        id: 'push-intermediate', level: 'intermediate', label: 'Intermediate',
+        description: 'Full gym, standard volume',
+        focus: 'Chest · Shoulders · Triceps',
+        estimatedMin: 45,
+        exerciseIds: ['bench-press', 'incline-db-press', 'shoulder-press', 'lateral-raises', 'tricep-pushdown'],
+      },
+      {
+        id: 'push-advanced', level: 'advanced', label: 'Advanced',
+        description: 'High volume, heavy compound lifts',
+        focus: 'Chest · Shoulders · Triceps',
+        estimatedMin: 60,
+        exerciseIds: ['bench-press', 'incline-db-press', 'cable-fly', 'shoulder-press', 'lateral-raises', 'tricep-pushdown', 'dips'],
+      },
+    ],
+  },
+  {
+    key: 'pull', name: 'Pull Day', emoji: '🔗', type: 'pull',
+    variations: [
+      {
+        id: 'pull-beginner', level: 'beginner', label: 'Beginner',
+        description: 'Machine-assisted, isolation focus',
+        focus: 'Back · Biceps',
+        estimatedMin: 30,
+        exerciseIds: ['lat-pulldown', 'cable-row', 'bicep-curl', 'hammer-curl'],
+      },
+      {
+        id: 'pull-intermediate', level: 'intermediate', label: 'Intermediate',
+        description: 'Mix of compound and isolation',
+        focus: 'Back · Biceps · Rear Delts',
+        estimatedMin: 45,
+        exerciseIds: ['pull-up', 'barbell-row', 'cable-row', 'face-pull', 'bicep-curl'],
+      },
+      {
+        id: 'pull-advanced', level: 'advanced', label: 'Advanced',
+        description: 'High volume, full back development',
+        focus: 'Back · Biceps · Rear Delts',
+        estimatedMin: 60,
+        exerciseIds: ['pull-up', 'barbell-row', 'cable-row', 'lat-pulldown', 'face-pull', 'bicep-curl', 'hammer-curl'],
+      },
+    ],
+  },
+  {
+    key: 'legs', name: 'Leg Day', emoji: '🦵', type: 'legs',
+    variations: [
+      {
+        id: 'legs-beginner', level: 'beginner', label: 'Beginner',
+        description: 'Bodyweight & goblet squat',
+        focus: 'Quads · Glutes · Calves',
+        estimatedMin: 30,
+        exerciseIds: ['goblet-squat', 'lunges', 'calf-raise'],
+      },
+      {
+        id: 'legs-intermediate', level: 'intermediate', label: 'Intermediate',
+        description: 'Barbell squat, moderate volume',
+        focus: 'Quads · Hamstrings · Glutes',
+        estimatedMin: 50,
+        exerciseIds: ['squat', 'romanian-deadlift', 'leg-press', 'lunges', 'calf-raise'],
+      },
+      {
+        id: 'legs-advanced', level: 'advanced', label: 'Advanced',
+        description: 'Full leg destruction, high volume',
+        focus: 'Quads · Hamstrings · Glutes · Calves',
+        estimatedMin: 65,
+        exerciseIds: ['squat', 'romanian-deadlift', 'leg-press', 'lunges', 'leg-curl', 'calf-raise'],
+      },
+    ],
+  },
+  {
+    key: 'upper', name: 'Upper Body', emoji: '🏋️', type: 'upper',
+    variations: [
+      {
+        id: 'upper-beginner', level: 'beginner', label: 'Beginner',
+        description: 'Push + pull basics',
+        focus: 'Chest · Back · Shoulders · Arms',
+        estimatedMin: 35,
+        exerciseIds: ['push-up', 'lat-pulldown', 'shoulder-press', 'bicep-curl'],
+      },
+      {
+        id: 'upper-intermediate', level: 'intermediate', label: 'Intermediate',
+        description: 'Balanced push/pull split',
+        focus: 'Chest · Back · Shoulders · Arms',
+        estimatedMin: 50,
+        exerciseIds: ['bench-press', 'barbell-row', 'shoulder-press', 'bicep-curl', 'tricep-pushdown'],
+      },
+      {
+        id: 'upper-advanced', level: 'advanced', label: 'Advanced',
+        description: 'Full upper body volume',
+        focus: 'Chest · Back · Shoulders · Arms',
+        estimatedMin: 65,
+        exerciseIds: ['bench-press', 'barbell-row', 'incline-db-press', 'pull-up', 'shoulder-press', 'bicep-curl', 'tricep-pushdown'],
+      },
+    ],
+  },
+  {
+    key: 'core', name: 'Core', emoji: '🔥', type: 'core',
+    variations: [
+      {
+        id: 'core-beginner', level: 'beginner', label: 'Beginner',
+        description: 'Foundation movements',
+        focus: 'Abs · Obliques',
+        estimatedMin: 20,
+        exerciseIds: ['plank', 'dead-bug', 'russian-twist'],
+      },
+      {
+        id: 'core-intermediate', level: 'intermediate', label: 'Intermediate',
+        description: 'Add hanging movements',
+        focus: 'Abs · Obliques · Hip Flexors',
+        estimatedMin: 28,
+        exerciseIds: ['plank', 'dead-bug', 'russian-twist', 'hanging-knee-raise'],
+      },
+      {
+        id: 'core-advanced', level: 'advanced', label: 'Advanced',
+        description: 'Maximum core challenge',
+        focus: 'Full Core',
+        estimatedMin: 35,
+        exerciseIds: ['plank', 'dead-bug', 'russian-twist', 'hanging-knee-raise', 'ab-wheel'],
+      },
+    ],
+  },
+  {
+    key: 'full', name: 'Full Body', emoji: '⚡', type: 'full',
+    variations: [
+      {
+        id: 'full-beginner', level: 'beginner', label: 'Beginner',
+        description: 'Simple full body circuit',
+        focus: 'Full Body',
+        estimatedMin: 35,
+        exerciseIds: ['goblet-squat', 'push-up', 'lat-pulldown', 'lunges', 'plank'],
+      },
+      {
+        id: 'full-intermediate', level: 'intermediate', label: 'Intermediate',
+        description: 'Compound-heavy full body',
+        focus: 'Full Body',
+        estimatedMin: 55,
+        exerciseIds: ['squat', 'bench-press', 'barbell-row', 'shoulder-press', 'lunges', 'plank'],
+      },
+      {
+        id: 'full-advanced', level: 'advanced', label: 'Advanced',
+        description: 'High intensity, max volume',
+        focus: 'Full Body',
+        estimatedMin: 70,
+        exerciseIds: ['squat', 'bench-press', 'barbell-row', 'romanian-deadlift', 'shoulder-press', 'pull-up', 'plank'],
+      },
+    ],
+  },
+];

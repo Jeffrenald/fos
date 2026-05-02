@@ -9,8 +9,10 @@ import { supabase } from '@/lib/supabase';
 import { Card } from '@/components/ui/Card';
 import { Tag } from '@/components/ui/Tag';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
+import { VariationSheet } from '@/components/workout/VariationSheet';
 import { HAITIAN_PROVERBS } from '@/constants/haitian-foods-db';
-import { WORKOUT_TEMPLATES } from '@/constants/exercises';
+import { TEMPLATES, WorkoutTemplate } from '@/constants/exercises';
+import type { Level } from '@/constants/exercises';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -92,17 +94,27 @@ function useHomeStats(userId: string | undefined) {
 export default function HomeScreen() {
   const user = useUserStore(s => s.user);
   const { stats, refreshing, refresh } = useHomeStats(user?.id);
+  const userLevel: Level = (user?.level as Level) ?? 'intermediate';
 
-  const proverb = HAITIAN_PROVERBS[new Date().getDay() % HAITIAN_PROVERBS.length];
+  const [selectedTemplate, setSelected] = useState<WorkoutTemplate | null>(null);
+  const [sheetOpen, setSheetOpen]       = useState(false);
+
+  const proverb   = HAITIAN_PROVERBS[new Date().getDay() % HAITIAN_PROVERBS.length];
   const firstName = user?.name?.split(' ')[0] ?? 'Sak pase';
   const todayDay  = DAYS[new Date().getDay()];
 
-  function startQuickWorkout(templateKey: string) {
-    const sessionId = `${templateKey}-${Date.now()}`;
-    router.push(`/workout/${sessionId}?template=${templateKey}`);
+  function openSheet(template: WorkoutTemplate) {
+    setSelected(template);
+    setSheetOpen(true);
+  }
+
+  function startVariation(variationId: string, exerciseIds: string[]) {
+    const sessionId = `${variationId}-${Date.now()}`;
+    router.push(`/workout/${sessionId}?variation=${variationId}&ids=${exerciseIds.join(',')}`);
   }
 
   return (
+    <>
     <ScreenWrapper
       scrollable
       refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={Colors.teal} />}
@@ -162,16 +174,16 @@ export default function HomeScreen() {
       {/* ── Quick Start Workouts ── */}
       <Text style={s.sectionTitle}>Start a Workout</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.templateScroll}>
-        {Object.entries(WORKOUT_TEMPLATES).map(([key, tmpl]) => (
+        {TEMPLATES.map(tmpl => (
           <TouchableOpacity
-            key={key}
+            key={tmpl.key}
             style={s.templateCard}
-            onPress={() => startQuickWorkout(key)}
+            onPress={() => openSheet(tmpl)}
             activeOpacity={0.8}
           >
             <Text style={s.templateEmoji}>{tmpl.emoji}</Text>
             <Text style={s.templateName}>{tmpl.name}</Text>
-            <Text style={s.templateCount}>{tmpl.exerciseIds.length} exercises</Text>
+            <Text style={s.templateCount}>{tmpl.variations.length} levels</Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
@@ -191,7 +203,7 @@ export default function HomeScreen() {
             {isToday && (
               <TouchableOpacity
                 style={s.startBtn}
-                onPress={() => startQuickWorkout('push')}
+                onPress={() => openSheet(TEMPLATES[0])}
                 activeOpacity={0.8}
               >
                 <Text style={s.startBtnText}>Go</Text>
@@ -201,6 +213,15 @@ export default function HomeScreen() {
         );
       })}
     </ScreenWrapper>
+
+      <VariationSheet
+        template={selectedTemplate}
+        userLevel={userLevel}
+        visible={sheetOpen}
+        onClose={() => setSheetOpen(false)}
+        onStart={startVariation}
+      />
+    </>
   );
 }
 

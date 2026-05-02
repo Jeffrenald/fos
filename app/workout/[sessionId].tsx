@@ -301,13 +301,23 @@ const sl = StyleSheet.create({
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function WorkoutSessionScreen() {
-  const { sessionId, template } = useLocalSearchParams<{ sessionId: string; template: string }>();
+  const { sessionId, template, variation, ids } = useLocalSearchParams<{
+    sessionId: string; template?: string; variation?: string; ids?: string;
+  }>();
   const user = useUserStore(s => s.user);
 
+  // Support both old ?template= and new ?ids= params
   const exercises: Exercise[] = (() => {
+    if (ids) {
+      return ids.split(',').map(id => EXERCISES.find(e => e.id === id)!).filter(Boolean);
+    }
     const tmpl = WORKOUT_TEMPLATES[template ?? 'push'];
     return tmpl ? tmpl.exerciseIds.map(id => EXERCISES.find(e => e.id === id)!).filter(Boolean) : [];
   })();
+
+  const sessionLabel = variation
+    ? variation.split('-').map((w: string) => w[0].toUpperCase() + w.slice(1)).join(' ')
+    : (template ? template.charAt(0).toUpperCase() + template.slice(1) + ' Day' : 'Workout');
 
   const [currentIdx, setCurrentIdx] = useState(0);
   const [sets, setSets]             = useState<SetLog[][]>(() =>
@@ -442,7 +452,7 @@ export default function WorkoutSessionScreen() {
           <View style={screen.progressBar}>
             <View style={[screen.progressFill, { width: `${progress}%` as any }]} />
           </View>
-          <Text style={screen.progressText}>{currentIdx + 1} of {exercises.length} exercises</Text>
+          <Text style={screen.progressText}>{sessionLabel}  ·  {currentIdx + 1}/{exercises.length}</Text>
         </View>
         <TouchableOpacity onPress={confirmFinish}>
           <Text style={screen.finishLink}>Finish</Text>
