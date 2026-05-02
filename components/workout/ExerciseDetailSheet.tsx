@@ -12,6 +12,14 @@ import { useUserStore } from '@/stores/userStore';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
+// ─── Elevation palette (lifts sheet off the app background) ──────────────────
+const E = {
+  sheet:   '#1C1C1E',   // sheet background — clearly above app #0A0A0A
+  card:    '#242428',   // section cards — lifted off sheet
+  cardAlt: '#2A2A2E',   // alternate raised card
+  line:    '#333338',   // visible divider
+};
+
 // ─── Muscle tag ───────────────────────────────────────────────────────────────
 
 function MuscleTag({ label, primary }: { label: string; primary: boolean }) {
@@ -25,68 +33,89 @@ function MuscleTag({ label, primary }: { label: string; primary: boolean }) {
 }
 
 const mt = StyleSheet.create({
-  wrap:          { paddingHorizontal: 10, paddingVertical: 4, borderRadius: Radius.full, marginRight: 6, marginBottom: 6 },
-  primary:       { backgroundColor: Colors.tealDim },
-  secondary:     { backgroundColor: Colors.surfaceRaised },
+  wrap:          { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.full, marginRight: 6, marginBottom: 6 },
+  primary:       { backgroundColor: 'rgba(0,201,167,0.18)', borderWidth: 0.5, borderColor: Colors.tealBorder },
+  secondary:     { backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)' },
   text:          { fontSize: FontSize.caption, fontFamily: 'Inter_500Medium', textTransform: 'capitalize' },
   textPrimary:   { color: Colors.teal },
-  textSecondary: { color: Colors.textMuted },
+  textSecondary: { color: '#AAAAAA' },
 });
 
-// ─── Section header ───────────────────────────────────────────────────────────
+// ─── Section card ─────────────────────────────────────────────────────────────
 
-function SectionHeader({ icon, label }: { icon: string; label: string }) {
+function SectionCard({
+  icon, label, iconBg, children,
+}: {
+  icon: string; label: string; iconBg: string; children: React.ReactNode;
+}) {
   return (
-    <View style={sec.row}>
-      <Text style={sec.icon}>{icon}</Text>
-      <Text style={sec.label}>{label}</Text>
+    <View style={sc.card}>
+      <View style={sc.header}>
+        <View style={[sc.iconWrap, { backgroundColor: iconBg }]}>
+          <Text style={sc.iconText}>{icon}</Text>
+        </View>
+        <Text style={sc.label}>{label}</Text>
+      </View>
+      {children}
     </View>
   );
 }
 
-const sec = StyleSheet.create({
-  row:   { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
-  icon:  { fontSize: 16 },
-  label: { color: Colors.textPrimary, fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
+const sc = StyleSheet.create({
+  card: {
+    backgroundColor: E.card,
+    borderRadius: 16,
+    borderWidth: 0.5,
+    borderColor: E.line,
+    padding: 16,
+    marginBottom: 12,
+  },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  iconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  iconText: { fontSize: 16 },
+  label:    { color: '#FFFFFF', fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
 });
 
-// ─── Bullet item ─────────────────────────────────────────────────────────────
+// ─── Bullet ───────────────────────────────────────────────────────────────────
 
-function Bullet({ text, color = Colors.teal, icon = '•' }: { text: string; color?: string; icon?: string }) {
+function Bullet({ text, variant }: { text: string; variant: 'good' | 'bad' }) {
+  const isGood = variant === 'good';
   return (
     <View style={bul.row}>
-      <Text style={[bul.dot, { color }]}>{icon}</Text>
+      <View style={[bul.dot, { backgroundColor: isGood ? Colors.teal : Colors.danger }]}>
+        <Ionicons name={isGood ? 'checkmark' : 'close'} size={10} color="#000" />
+      </View>
       <Text style={bul.text}>{text}</Text>
     </View>
   );
 }
 
 const bul = StyleSheet.create({
-  row:  { flexDirection: 'row', gap: 10, marginBottom: 8, alignItems: 'flex-start' },
-  dot:  { fontSize: 14, lineHeight: 20, width: 14 },
-  text: { color: Colors.textSecondary, fontSize: FontSize.bodySm, flex: 1, lineHeight: 20 },
+  row:  { flexDirection: 'row', gap: 10, marginBottom: 10, alignItems: 'flex-start' },
+  dot:  { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0 },
+  text: { color: '#CCCCCC', fontSize: FontSize.bodySm, flex: 1, lineHeight: 20 },
 });
 
-// ─── Personal record stat ─────────────────────────────────────────────────────
+// ─── Stat cell ────────────────────────────────────────────────────────────────
 
-function PRStat({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function StatCell({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <View style={pr.cell}>
-      <Text style={pr.value}>{value}</Text>
-      {sub ? <Text style={pr.sub}>{sub}</Text> : null}
-      <Text style={pr.label}>{label}</Text>
+    <View style={stat.cell}>
+      <Text style={stat.value}>{value}</Text>
+      {sub ? <Text style={stat.sub}>{sub}</Text> : null}
+      <Text style={stat.label}>{label}</Text>
     </View>
   );
 }
 
-const pr = StyleSheet.create({
-  cell:  { flex: 1, alignItems: 'center' },
-  value: { color: Colors.teal, fontSize: FontSize.h3, fontFamily: 'Inter_500Medium' },
-  sub:   { color: Colors.textDim, fontSize: 10, marginTop: 1 },
-  label: { color: Colors.textMuted, fontSize: 10, marginTop: 3, textAlign: 'center' },
+const stat = StyleSheet.create({
+  cell:  { flex: 1, alignItems: 'center', paddingVertical: 4 },
+  value: { color: Colors.teal, fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
+  sub:   { color: '#888', fontSize: 10, marginTop: 1 },
+  label: { color: '#888', fontSize: 10, marginTop: 4, textAlign: 'center' },
 });
 
-// ─── Personal records loader ──────────────────────────────────────────────────
+// ─── Records hook ─────────────────────────────────────────────────────────────
 
 interface Records { maxWeight: number | null; maxReps: number | null; sessions: number; }
 
@@ -122,7 +151,7 @@ function usePersonalRecords(exerciseName: string, visible: boolean) {
   return { data, loading };
 }
 
-// ─── Main Sheet ───────────────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 
 interface ExerciseDetailSheetProps {
   exercise: Exercise | null;
@@ -137,100 +166,82 @@ export function ExerciseDetailSheet({ exercise, visible, onClose }: ExerciseDeta
 
   if (!exercise) return null;
 
-  const hasRecords = records && (records.maxWeight !== null || records.maxReps !== null);
+  const hasRecords = records && (records.maxWeight !== null || records.maxReps !== null || records.sessions > 0);
 
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
-      <View style={sheet.overlay}>
+      <View style={s.overlay}>
         <Pressable style={StyleSheet.absoluteFillObject} onPress={onClose} />
 
-        <View style={sheet.container}>
-          {/* Handle */}
-          <View style={sheet.handle} />
+        <View style={s.container}>
+          <View style={s.handle} />
 
-          {/* Header */}
-          <View style={sheet.header}>
+          {/* ── Header ── */}
+          <View style={s.header}>
             <View style={{ flex: 1 }}>
-              <View style={sheet.tagRow}>
-                {exercise.musclesPrimary.map(m => (
-                  <MuscleTag key={m} label={m} primary />
-                ))}
-                {exercise.musclesSecondary.map(m => (
-                  <MuscleTag key={m} label={m} primary={false} />
-                ))}
+              <View style={s.tagRow}>
+                {exercise.musclesPrimary.map(m => <MuscleTag key={m} label={m} primary />)}
+                {exercise.musclesSecondary.map(m => <MuscleTag key={m} label={m} primary={false} />)}
               </View>
-              <Text style={sheet.title}>{exercise.name}</Text>
-              <Text style={sheet.meta}>
+              <Text style={s.title}>{exercise.name}</Text>
+              <Text style={s.meta}>
                 {exercise.defaultSets} sets · {exercise.defaultReps} reps · {exercise.defaultRest}s rest
               </Text>
             </View>
-            <Pressable onPress={onClose} style={sheet.closeBtn}>
-              <Ionicons name="close" size={20} color={Colors.textMuted} />
+            <Pressable onPress={onClose} style={s.closeBtn}>
+              <Ionicons name="close" size={18} color="#888" />
             </Pressable>
           </View>
 
+          {/* ── Scrollable content ── */}
           <ScrollView
-            style={sheet.scroll}
-            contentContainerStyle={sheet.scrollContent}
+            style={s.scroll}
+            contentContainerStyle={s.scrollContent}
             showsVerticalScrollIndicator={false}
           >
             {/* Technique */}
-            <View style={sheet.section}>
-              <SectionHeader icon="🎯" label="Technique" />
-              <Text style={sheet.instructionText}>{exercise.instructions_en}</Text>
-            </View>
+            <SectionCard icon="🎯" label="Technique" iconBg="rgba(0,201,167,0.15)">
+              <Text style={s.instructionText}>{exercise.instructions_en}</Text>
+            </SectionCard>
 
-            <View style={sheet.divider} />
-
-            {/* Advantages */}
-            <View style={sheet.section}>
-              <SectionHeader icon="✅" label="Why do it" />
-              {exercise.advantages.map((a, i) => (
-                <Bullet key={i} text={a} color={Colors.teal} />
-              ))}
-            </View>
-
-            <View style={sheet.divider} />
+            {/* Why do it */}
+            <SectionCard icon="✅" label="Why do it" iconBg="rgba(63,204,147,0.15)">
+              {exercise.advantages.map((a, i) => <Bullet key={i} text={a} variant="good" />)}
+            </SectionCard>
 
             {/* Avoid */}
-            <View style={sheet.section}>
-              <SectionHeader icon="⚠️" label="What to avoid" />
-              {exercise.avoid.map((a, i) => (
-                <Bullet key={i} text={a} color={Colors.danger} icon="✕" />
-              ))}
-            </View>
-
-            <View style={sheet.divider} />
+            <SectionCard icon="⚠️" label="What to avoid" iconBg="rgba(255,122,133,0.15)">
+              {exercise.avoid.map((a, i) => <Bullet key={i} text={a} variant="bad" />)}
+            </SectionCard>
 
             {/* Personal records */}
-            <View style={sheet.section}>
-              <SectionHeader icon="📊" label="Your best" />
+            <SectionCard icon="📊" label="Your best" iconBg="rgba(111,168,255,0.15)">
               {recordsLoading ? (
-                <ActivityIndicator color={Colors.teal} size="small" style={{ marginVertical: 8 }} />
+                <ActivityIndicator color={Colors.teal} size="small" />
               ) : hasRecords ? (
-                <View style={sheet.prRow}>
-                  <PRStat
+                <View style={s.statsRow}>
+                  <StatCell
                     label="Max weight"
-                    value={records.maxWeight ? `${records.maxWeight}kg` : '—'}
+                    value={records!.maxWeight ? `${records!.maxWeight}kg` : '—'}
                   />
-                  <View style={sheet.prDivider} />
-                  <PRStat
+                  <View style={s.statsDivider} />
+                  <StatCell
                     label="Max reps"
-                    value={records.maxReps ? `${records.maxReps}` : '—'}
-                    sub={records.maxWeight ? `@ ${records.maxWeight}kg` : undefined}
+                    value={records!.maxReps ? `${records!.maxReps}` : '—'}
+                    sub={records!.maxWeight ? `@ ${records!.maxWeight}kg` : undefined}
                   />
-                  <View style={sheet.prDivider} />
-                  <PRStat
+                  <View style={s.statsDivider} />
+                  <StatCell
                     label="Sessions"
-                    value={`${records.sessions}`}
+                    value={`${records!.sessions}`}
                   />
                 </View>
               ) : (
-                <Text style={sheet.noRecord}>
-                  No data yet — log this exercise to track your personal best.
+                <Text style={s.noRecord}>
+                  No data yet — complete a session with this exercise to see your personal bests here.
                 </Text>
               )}
-            </View>
+            </SectionCard>
           </ScrollView>
         </View>
       </View>
@@ -238,64 +249,63 @@ export function ExerciseDetailSheet({ exercise, visible, onClose }: ExerciseDeta
   );
 }
 
-const sheet = StyleSheet.create({
+const s = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
+    backgroundColor: 'rgba(0,0,0,0.7)',
     justifyContent: 'flex-end',
   },
   container: {
-    height: SCREEN_HEIGHT * 0.82,
-    backgroundColor: Colors.background,
-    borderTopLeftRadius:  24,
+    height: SCREEN_HEIGHT * 0.84,
+    backgroundColor: E.sheet,
+    borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    borderTopWidth: 0.5,
-    borderColor: Colors.border,
+    borderTopWidth: 1,
+    borderColor: E.line,
   },
   handle: {
-    width: 40, height: 4,
-    backgroundColor: Colors.border,
+    width: 36, height: 4,
+    backgroundColor: '#444',
     borderRadius: 2,
     alignSelf: 'center',
-    marginTop: 12, marginBottom: 4,
+    marginTop: 10, marginBottom: 4,
   },
+
   header: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: 14,
-    borderBottomWidth: 0.5,
-    borderBottomColor: Colors.border,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: E.line,
     gap: 12,
   },
-  tagRow:  { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 },
-  title:   { color: Colors.textPrimary, fontSize: FontSize.h2, fontFamily: 'Inter_500Medium', marginBottom: 4 },
-  meta:    { color: Colors.textMuted,   fontSize: FontSize.caption },
+  tagRow:  { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
+  title:   { color: '#FFFFFF', fontSize: FontSize.h2, fontFamily: 'Inter_500Medium', marginBottom: 4 },
+  meta:    { color: '#888', fontSize: FontSize.caption },
   closeBtn: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: Colors.surface,
+    backgroundColor: '#2A2A2E',
     alignItems: 'center', justifyContent: 'center',
     marginTop: 4,
   },
 
   scroll:        { flex: 1 },
-  scrollContent: { paddingBottom: 40 },
-
-  section:  { paddingHorizontal: Spacing.screenPadding, paddingVertical: 18 },
-  divider:  { height: 0.5, backgroundColor: Colors.border, marginHorizontal: Spacing.screenPadding },
+  scrollContent: { padding: Spacing.screenPadding, paddingBottom: 40 },
 
   instructionText: {
-    color: Colors.textSecondary,
+    color: '#CCCCCC',
     fontSize: FontSize.bodySm,
     lineHeight: 22,
   },
 
-  prRow:     { flexDirection: 'row', alignItems: 'center' },
-  prDivider: { width: 0.5, height: 40, backgroundColor: Colors.border },
+  statsRow:     { flexDirection: 'row', alignItems: 'center' },
+  statsDivider: { width: 1, height: 44, backgroundColor: E.line },
 
   noRecord: {
-    color: Colors.textDim,
+    color: '#666',
     fontSize: FontSize.caption,
     fontStyle: 'italic',
+    lineHeight: 18,
   },
 });
