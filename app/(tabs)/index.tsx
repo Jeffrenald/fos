@@ -239,18 +239,27 @@ const s = StyleSheet.create({
   },
   avatarText:   { color: Colors.background, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium' },
 
-  streakCard:       { marginBottom: Spacing.cardGap },
+  streakCard: {
+    marginBottom: Spacing.cardGap,
+    // warm orange glow around streak card
+    shadowColor: '#F0B040',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 5,
+    borderColor: 'rgba(240,176,64,0.25)',
+  },
   streakRow:        { flexDirection: 'row', alignItems: 'center', gap: 14 },
   streakFire:       { fontSize: 32 },
-  streakCount:      { color: Colors.textPrimary, fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
-  streakLabel:      { color: Colors.textMuted,   fontSize: FontSize.body, fontFamily: 'Inter_400Regular' },
-  streakMotto:      { color: Colors.textSecondary, fontSize: FontSize.caption, marginTop: 4, fontStyle: 'italic' },
-  streakTranslation: { color: Colors.textDim,     fontSize: FontSize.caption },
+  streakCount:      { color: '#FFFFFF', fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
+  streakLabel:      { color: '#888', fontSize: FontSize.body, fontFamily: 'Inter_400Regular' },
+  streakMotto:      { color: '#CCCCCC', fontSize: FontSize.caption, marginTop: 4, fontStyle: 'italic' },
+  streakTranslation:{ color: '#666', fontSize: FontSize.caption },
 
   statsGrid:    { flexDirection: 'row', flexWrap: 'wrap', gap: Spacing.cardGap, marginBottom: 20 },
   statCard:     { flex: 1, minWidth: '45%' },
-  statValue:    { color: Colors.textPrimary, fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
-  statLabel:    { color: Colors.textMuted,   fontSize: FontSize.caption, marginTop: 4 },
+  statValue:    { color: '#FFFFFF', fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
+  statLabel:    { color: '#777', fontSize: FontSize.caption, marginTop: 4 },
 
   sectionTitle: { color: Colors.textPrimary, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium', marginBottom: 12 },
 

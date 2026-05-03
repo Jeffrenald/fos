@@ -12,84 +12,136 @@ import { useUserStore } from '@/stores/userStore';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
-// ─── Elevation palette (lifts sheet off the app background) ──────────────────
+// ─── Depth palette ────────────────────────────────────────────────────────────
 const E = {
-  sheet:   '#1C1C1E',   // sheet background — clearly above app #0A0A0A
-  card:    '#242428',   // section cards — lifted off sheet
-  cardAlt: '#2A2A2E',   // alternate raised card
-  line:    '#333338',   // visible divider
+  sheet:   '#1C1C1E',
+  card:    '#242428',
+  line:    '#333338',
 };
 
-// ─── Muscle tag ───────────────────────────────────────────────────────────────
+// ─── Section glow configs ─────────────────────────────────────────────────────
+const SECTIONS = {
+  technique: { icon: '🎯', label: 'Technique',    color: '#00C9A7', iconBg: 'rgba(0,201,167,0.18)'    },
+  why:       { icon: '✅', label: 'Why do it',    color: '#3FCC93', iconBg: 'rgba(63,204,147,0.18)'   },
+  avoid:     { icon: '⚠️', label: 'What to avoid', color: '#FF7A85', iconBg: 'rgba(255,122,133,0.18)' },
+  stats:     { icon: '📊', label: 'Your best',    color: '#6FA8FF', iconBg: 'rgba(111,168,255,0.18)'  },
+};
 
+// ─── Glow helpers ─────────────────────────────────────────────────────────────
+// Cross-platform glow: colored border + faint bg tint + iOS shadow
+function glowStyle(color: string, intensity: number = 1) {
+  return {
+    borderColor: `${color}${Math.round(55 * intensity).toString(16).padStart(2, '0')}`,
+    backgroundColor: `${color}${Math.round(14 * intensity).toString(16).padStart(2, '0')}`,
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45 * intensity,
+    shadowRadius: 10 * intensity,
+    elevation: 4,
+  } as const;
+}
+
+// ─── Muscle tag ───────────────────────────────────────────────────────────────
 function MuscleTag({ label, primary }: { label: string; primary: boolean }) {
   return (
     <View style={[mt.wrap, primary ? mt.primary : mt.secondary]}>
-      <Text style={[mt.text, primary ? mt.textPrimary : mt.textSecondary]}>
-        {label}
-      </Text>
+      <Text style={[mt.text, primary ? mt.textP : mt.textS]}>{label}</Text>
+    </View>
+  );
+}
+const mt = StyleSheet.create({
+  wrap:    { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.full, marginRight: 6, marginBottom: 6, borderWidth: 0.5 },
+  primary: { backgroundColor: 'rgba(0,201,167,0.15)', borderColor: 'rgba(0,201,167,0.4)' },
+  secondary:{ backgroundColor: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.12)' },
+  text:    { fontSize: FontSize.caption, fontFamily: 'Inter_500Medium', textTransform: 'capitalize' },
+  textP:   { color: '#00C9A7' },
+  textS:   { color: '#AAAAAA' },
+});
+
+// ─── Section card with glow ───────────────────────────────────────────────────
+function SectionCard({
+  sectionKey, children,
+}: {
+  sectionKey: keyof typeof SECTIONS;
+  children: React.ReactNode;
+}) {
+  const cfg = SECTIONS[sectionKey];
+  return (
+    <View style={[sc.card, { borderColor: `${cfg.color}40`, ...glowBorder(cfg.color) }]}>
+      {/* Colored top accent line */}
+      <View style={[sc.topLine, { backgroundColor: cfg.color }]} />
+
+      <View style={sc.inner}>
+        <View style={sc.header}>
+          {/* Icon box with stronger glow */}
+          <View style={[sc.iconWrap, { backgroundColor: cfg.iconBg, ...iconGlow(cfg.color) }]}>
+            <Text style={sc.iconText}>{cfg.icon}</Text>
+          </View>
+          <Text style={sc.label}>{cfg.label}</Text>
+        </View>
+        {children}
+      </View>
     </View>
   );
 }
 
-const mt = StyleSheet.create({
-  wrap:          { paddingHorizontal: 10, paddingVertical: 5, borderRadius: Radius.full, marginRight: 6, marginBottom: 6 },
-  primary:       { backgroundColor: 'rgba(0,201,167,0.18)', borderWidth: 0.5, borderColor: Colors.tealBorder },
-  secondary:     { backgroundColor: 'rgba(255,255,255,0.07)', borderWidth: 0.5, borderColor: 'rgba(255,255,255,0.1)' },
-  text:          { fontSize: FontSize.caption, fontFamily: 'Inter_500Medium', textTransform: 'capitalize' },
-  textPrimary:   { color: Colors.teal },
-  textSecondary: { color: '#AAAAAA' },
-});
-
-// ─── Section card ─────────────────────────────────────────────────────────────
-
-function SectionCard({
-  icon, label, iconBg, children,
-}: {
-  icon: string; label: string; iconBg: string; children: React.ReactNode;
-}) {
-  return (
-    <View style={sc.card}>
-      <View style={sc.header}>
-        <View style={[sc.iconWrap, { backgroundColor: iconBg }]}>
-          <Text style={sc.iconText}>{icon}</Text>
-        </View>
-        <Text style={sc.label}>{label}</Text>
-      </View>
-      {children}
-    </View>
-  );
+function glowBorder(color: string) {
+  return {
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 3,
+  };
+}
+function iconGlow(color: string) {
+  return {
+    shadowColor: color,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.6,
+    shadowRadius: 10,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: `${color}55`,
+  };
 }
 
 const sc = StyleSheet.create({
   card: {
     backgroundColor: E.card,
     borderRadius: 16,
-    borderWidth: 0.5,
-    borderColor: E.line,
-    padding: 16,
+    borderWidth: 1,
     marginBottom: 12,
+    overflow: 'hidden',
   },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
-  iconWrap: { width: 32, height: 32, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  iconText: { fontSize: 16 },
-  label:    { color: '#FFFFFF', fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
+  topLine: { height: 2, width: '100%' },
+  inner:   { padding: 16 },
+  header:  { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
+  iconWrap:{ width: 34, height: 34, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  iconText:{ fontSize: 16 },
+  label:   { color: '#FFFFFF', fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
 });
 
 // ─── Bullet ───────────────────────────────────────────────────────────────────
-
 function Bullet({ text, variant }: { text: string; variant: 'good' | 'bad' }) {
   const isGood = variant === 'good';
+  const color  = isGood ? '#3FCC93' : '#FF7A85';
   return (
     <View style={bul.row}>
-      <View style={[bul.dot, { backgroundColor: isGood ? Colors.teal : Colors.danger }]}>
+      <View style={[bul.dot, {
+        backgroundColor: color,
+        shadowColor: color,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.7,
+        shadowRadius: 6,
+        elevation: 3,
+      }]}>
         <Ionicons name={isGood ? 'checkmark' : 'close'} size={10} color="#000" />
       </View>
       <Text style={bul.text}>{text}</Text>
     </View>
   );
 }
-
 const bul = StyleSheet.create({
   row:  { flexDirection: 'row', gap: 10, marginBottom: 10, alignItems: 'flex-start' },
   dot:  { width: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center', marginTop: 1, flexShrink: 0 },
@@ -97,26 +149,28 @@ const bul = StyleSheet.create({
 });
 
 // ─── Stat cell ────────────────────────────────────────────────────────────────
-
 function StatCell({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
     <View style={stat.cell}>
-      <Text style={stat.value}>{value}</Text>
+      <Text style={[stat.value, {
+        // teal text glow on iOS
+        textShadowColor: 'rgba(0,201,167,0.6)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 10,
+      }]}>{value}</Text>
       {sub ? <Text style={stat.sub}>{sub}</Text> : null}
       <Text style={stat.label}>{label}</Text>
     </View>
   );
 }
-
 const stat = StyleSheet.create({
   cell:  { flex: 1, alignItems: 'center', paddingVertical: 4 },
   value: { color: Colors.teal, fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
-  sub:   { color: '#888', fontSize: 10, marginTop: 1 },
-  label: { color: '#888', fontSize: 10, marginTop: 4, textAlign: 'center' },
+  sub:   { color: '#666', fontSize: 10, marginTop: 1 },
+  label: { color: '#666', fontSize: 10, marginTop: 4, textAlign: 'center' },
 });
 
 // ─── Records hook ─────────────────────────────────────────────────────────────
-
 interface Records { maxWeight: number | null; maxReps: number | null; sessions: number; }
 
 function usePersonalRecords(exerciseName: string, visible: boolean) {
@@ -151,8 +205,7 @@ function usePersonalRecords(exerciseName: string, visible: boolean) {
   return { data, loading };
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
+// ─── Main ─────────────────────────────────────────────────────────────────────
 interface ExerciseDetailSheetProps {
   exercise: Exercise | null;
   visible:  boolean;
@@ -163,7 +216,6 @@ export function ExerciseDetailSheet({ exercise, visible, onClose }: ExerciseDeta
   const { data: records, loading: recordsLoading } = usePersonalRecords(
     exercise?.name ?? '', visible
   );
-
   if (!exercise) return null;
 
   const hasRecords = records && (records.maxWeight !== null || records.maxReps !== null || records.sessions > 0);
@@ -176,7 +228,7 @@ export function ExerciseDetailSheet({ exercise, visible, onClose }: ExerciseDeta
         <View style={s.container}>
           <View style={s.handle} />
 
-          {/* ── Header ── */}
+          {/* Header */}
           <View style={s.header}>
             <View style={{ flex: 1 }}>
               <View style={s.tagRow}>
@@ -189,59 +241,46 @@ export function ExerciseDetailSheet({ exercise, visible, onClose }: ExerciseDeta
               </Text>
             </View>
             <Pressable onPress={onClose} style={s.closeBtn}>
-              <Ionicons name="close" size={18} color="#888" />
+              <Ionicons name="close" size={18} color="#777" />
             </Pressable>
           </View>
 
-          {/* ── Scrollable content ── */}
-          <ScrollView
-            style={s.scroll}
-            contentContainerStyle={s.scrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {/* Technique */}
-            <SectionCard icon="🎯" label="Technique" iconBg="rgba(0,201,167,0.15)">
-              <Text style={s.instructionText}>{exercise.instructions_en}</Text>
+          <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false}>
+
+            <SectionCard sectionKey="technique">
+              <Text style={s.instrText}>{exercise.instructions_en}</Text>
             </SectionCard>
 
-            {/* Why do it */}
-            <SectionCard icon="✅" label="Why do it" iconBg="rgba(63,204,147,0.15)">
+            <SectionCard sectionKey="why">
               {exercise.advantages.map((a, i) => <Bullet key={i} text={a} variant="good" />)}
             </SectionCard>
 
-            {/* Avoid */}
-            <SectionCard icon="⚠️" label="What to avoid" iconBg="rgba(255,122,133,0.15)">
+            <SectionCard sectionKey="avoid">
               {exercise.avoid.map((a, i) => <Bullet key={i} text={a} variant="bad" />)}
             </SectionCard>
 
-            {/* Personal records */}
-            <SectionCard icon="📊" label="Your best" iconBg="rgba(111,168,255,0.15)">
+            <SectionCard sectionKey="stats">
               {recordsLoading ? (
                 <ActivityIndicator color={Colors.teal} size="small" />
               ) : hasRecords ? (
                 <View style={s.statsRow}>
-                  <StatCell
-                    label="Max weight"
-                    value={records!.maxWeight ? `${records!.maxWeight}kg` : '—'}
-                  />
-                  <View style={s.statsDivider} />
+                  <StatCell label="Max weight" value={records!.maxWeight ? `${records!.maxWeight}kg` : '—'} />
+                  <View style={s.statDiv} />
                   <StatCell
                     label="Max reps"
                     value={records!.maxReps ? `${records!.maxReps}` : '—'}
                     sub={records!.maxWeight ? `@ ${records!.maxWeight}kg` : undefined}
                   />
-                  <View style={s.statsDivider} />
-                  <StatCell
-                    label="Sessions"
-                    value={`${records!.sessions}`}
-                  />
+                  <View style={s.statDiv} />
+                  <StatCell label="Sessions" value={`${records!.sessions}`} />
                 </View>
               ) : (
                 <Text style={s.noRecord}>
-                  No data yet — complete a session with this exercise to see your personal bests here.
+                  No data yet — complete a session with this exercise to see your personal bests.
                 </Text>
               )}
             </SectionCard>
+
           </ScrollView>
         </View>
       </View>
@@ -250,62 +289,33 @@ export function ExerciseDetailSheet({ exercise, visible, onClose }: ExerciseDeta
 }
 
 const s = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.7)',
-    justifyContent: 'flex-end',
-  },
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
   container: {
     height: SCREEN_HEIGHT * 0.84,
     backgroundColor: E.sheet,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    borderTopWidth: 1,
-    borderColor: E.line,
+    borderTopLeftRadius: 24, borderTopRightRadius: 24,
+    borderTopWidth: 1, borderColor: E.line,
   },
   handle: {
-    width: 36, height: 4,
-    backgroundColor: '#444',
-    borderRadius: 2,
-    alignSelf: 'center',
-    marginTop: 10, marginBottom: 4,
+    width: 36, height: 4, backgroundColor: '#444',
+    borderRadius: 2, alignSelf: 'center', marginTop: 10, marginBottom: 4,
   },
-
   header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    paddingHorizontal: Spacing.screenPadding,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: E.line,
-    gap: 12,
+    flexDirection: 'row', alignItems: 'flex-start',
+    paddingHorizontal: Spacing.screenPadding, paddingVertical: 16,
+    borderBottomWidth: 1, borderBottomColor: E.line, gap: 12,
   },
-  tagRow:  { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
-  title:   { color: '#FFFFFF', fontSize: FontSize.h2, fontFamily: 'Inter_500Medium', marginBottom: 4 },
-  meta:    { color: '#888', fontSize: FontSize.caption },
+  tagRow:   { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 8 },
+  title:    { color: '#FFFFFF', fontSize: FontSize.h2, fontFamily: 'Inter_500Medium', marginBottom: 4 },
+  meta:     { color: '#777', fontSize: FontSize.caption },
   closeBtn: {
     width: 32, height: 32, borderRadius: 16,
-    backgroundColor: '#2A2A2E',
-    alignItems: 'center', justifyContent: 'center',
-    marginTop: 4,
+    backgroundColor: '#2A2A2E', alignItems: 'center', justifyContent: 'center', marginTop: 4,
   },
-
   scroll:        { flex: 1 },
   scrollContent: { padding: Spacing.screenPadding, paddingBottom: 40 },
-
-  instructionText: {
-    color: '#CCCCCC',
-    fontSize: FontSize.bodySm,
-    lineHeight: 22,
-  },
-
-  statsRow:     { flexDirection: 'row', alignItems: 'center' },
-  statsDivider: { width: 1, height: 44, backgroundColor: E.line },
-
-  noRecord: {
-    color: '#666',
-    fontSize: FontSize.caption,
-    fontStyle: 'italic',
-    lineHeight: 18,
-  },
+  instrText:{ color: '#CCCCCC', fontSize: FontSize.bodySm, lineHeight: 22 },
+  statsRow: { flexDirection: 'row', alignItems: 'center' },
+  statDiv:  { width: 1, height: 44, backgroundColor: E.line },
+  noRecord: { color: '#555', fontSize: FontSize.caption, fontStyle: 'italic', lineHeight: 18 },
 });
