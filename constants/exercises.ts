@@ -460,3 +460,65 @@ export const TEMPLATES: WorkoutTemplate[] = [
     ],
   },
 ];
+
+// ─── Ultimate Growth Program ──────────────────────────────────────────────────
+// Multi-muscle-group daily splits for maximum hypertrophy.
+// Antagonist pairing + strategic overlap = maximum weekly volume per muscle.
+
+export interface UltimateGrowthDay {
+  day:         number;     // 1–5
+  name:        string;     // display name
+  emoji:       string;
+  muscles:     string[];   // muscle groups targeted (for display)
+  exerciseIds: string[];
+  estimatedMin: number;
+  logic:       string;     // brief science note
+}
+
+export const ULTIMATE_GROWTH_DAYS: UltimateGrowthDay[] = [
+  {
+    day: 1,
+    name: 'Chest · Back · Biceps',
+    emoji: '💥',
+    muscles: ['Chest', 'Back', 'Biceps'],
+    exerciseIds: ['bench-press', 'barbell-row', 'incline-db-press', 'cable-row', 'bicep-curl', 'hammer-curl'],
+    estimatedMin: 55,
+    logic: 'Chest push + back pull — antagonist pairing maximizes pump and allows heavier loads.',
+  },
+  {
+    day: 2,
+    name: 'Legs · Shoulders · Core',
+    emoji: '⚡',
+    muscles: ['Quads', 'Hamstrings', 'Shoulders', 'Core'],
+    exerciseIds: ['squat', 'romanian-deadlift', 'shoulder-press', 'lateral-raises', 'calf-raise', 'plank'],
+    estimatedMin: 60,
+    logic: 'Lower body + shoulder isolation — legs are fresh, shoulders aren\'t taxed by previous chest work.',
+  },
+  {
+    day: 3,
+    name: 'Back · Biceps · Core',
+    emoji: '🔗',
+    muscles: ['Back', 'Biceps', 'Core'],
+    exerciseIds: ['pull-up', 'lat-pulldown', 'face-pull', 'bicep-curl', 'hammer-curl', 'hanging-knee-raise'],
+    estimatedMin: 50,
+    logic: 'Back width + bicep peak — biceps are already warmed up from pulling, efficient co-activation.',
+  },
+  {
+    day: 4,
+    name: 'Chest · Triceps · Core',
+    emoji: '🔥',
+    muscles: ['Chest', 'Triceps', 'Core'],
+    exerciseIds: ['bench-press', 'cable-fly', 'dips', 'tricep-pushdown', 'dead-bug', 'russian-twist'],
+    estimatedMin: 50,
+    logic: 'Chest pressing naturally activates triceps — train them together for full push volume.',
+  },
+  {
+    day: 5,
+    name: 'Legs · Shoulders · Glutes',
+    emoji: '🦵',
+    muscles: ['Quads', 'Glutes', 'Hamstrings', 'Shoulders'],
+    exerciseIds: ['squat', 'leg-press', 'romanian-deadlift', 'lunges', 'shoulder-press', 'lateral-raises'],
+    estimatedMin: 65,
+    logic: 'Second leg day hits different angles — posterior chain emphasis rounds out weekly glute volume.',
+  },
+];

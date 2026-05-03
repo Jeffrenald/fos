@@ -14,6 +14,7 @@ import { VariationSheet } from '@/components/workout/VariationSheet';
 import { WorkoutTemplateCard } from '@/components/workout/WorkoutTemplateCard';
 import { FrequencySheet } from '@/components/plan/FrequencySheet';
 import { DayPreviewSheet } from '@/components/plan/DayPreviewSheet';
+import { UltimateGrowthSheet } from '@/components/plan/UltimateGrowthSheet';
 import { HAITIAN_PROVERBS } from '@/constants/haitian-foods-db';
 import { TEMPLATES, WorkoutTemplate } from '@/constants/exercises';
 import { DAY_LABELS, todayDayIndex } from '@/lib/planGenerator';
@@ -111,6 +112,7 @@ export default function HomeScreen() {
   const [freqOpen, setFreqOpen]           = useState(false);
   const [selectedDay, setSelectedDay]     = useState<PlannedDay | null>(null);
   const [dayPreviewOpen, setDayPreview]   = useState(false);
+  const [ugOpen, setUgOpen]              = useState(false);
 
   const proverb   = HAITIAN_PROVERBS[new Date().getDay() % HAITIAN_PROVERBS.length];
   const firstName = user?.name?.split(' ')[0] ?? 'Sak pase';
@@ -197,6 +199,17 @@ export default function HomeScreen() {
         style={s.templateScroll}
         contentContainerStyle={s.templateScrollContent}
       >
+        {/* Ultimate Growth — premium card first */}
+        <TouchableOpacity style={s.ugCard} onPress={() => setUgOpen(true)} activeOpacity={0.85}>
+          <View style={s.ugBar} />
+          <Text style={s.ugCrown}>👑</Text>
+          <Text style={s.ugName}>Ultimate{'\n'}Growth</Text>
+          <Text style={s.ugSub}>5-day · Multi-muscle</Text>
+          <View style={s.ugPill}>
+            <Text style={s.ugPillText}>Advanced</Text>
+          </View>
+        </TouchableOpacity>
+
         {TEMPLATES.map(tmpl => (
           <WorkoutTemplateCard
             key={tmpl.key}
@@ -302,6 +315,11 @@ export default function HomeScreen() {
         isPast={!!selectedDay && selectedDay.dayIndex < todayIdx}
         onClose={() => setDayPreview(false)}
       />
+
+      <UltimateGrowthSheet
+        visible={ugOpen}
+        onClose={() => setUgOpen(false)}
+      />
     </>
   );
 }
@@ -346,6 +364,23 @@ const s = StyleSheet.create({
   templateScroll:        { marginHorizontal: -Spacing.screenPadding, marginBottom: 20 },
   templateScrollContent: { paddingHorizontal: Spacing.screenPadding },
 
+  // Ultimate Growth card
+  ugCard: {
+    width: 140, marginRight: 12,
+    backgroundColor: '#1A1A1C',
+    borderRadius: 20, overflow: 'hidden',
+    paddingBottom: 14,
+    borderWidth: 1, borderColor: 'rgba(240,176,64,0.35)',
+    shadowColor: '#F0B040', shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.45, shadowRadius: 14, elevation: 6,
+  },
+  ugBar:   { height: 4, backgroundColor: '#F0B040', width: '100%', marginBottom: 14 },
+  ugCrown: { fontSize: 30, textAlign: 'center', marginBottom: 8 },
+  ugName:  { color: '#F0B040', fontSize: FontSize.body, fontFamily: 'Inter_500Medium', textAlign: 'center', marginBottom: 6, paddingHorizontal: 10 },
+  ugSub:   { color: '#666', fontSize: 10, textAlign: 'center', marginBottom: 10 },
+  ugPill:  { backgroundColor: 'rgba(240,176,64,0.12)', borderRadius: Radius.full, paddingHorizontal: 10, paddingVertical: 3, alignSelf: 'center', borderWidth: 0.5, borderColor: 'rgba(240,176,64,0.3)' },
+  ugPillText: { color: '#F0B040', fontSize: 9, fontFamily: 'Inter_500Medium' },
+
   // Plan header
   planHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 8 },
   planEditBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,201,167,0.1)', borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 0.5, borderColor: 'rgba(0,201,167,0.3)' },
@@ -354,7 +389,8 @@ const s = StyleSheet.create({
   // Day rows
   dayRow:     { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8, paddingVertical: 10 },
   dayRowToday:{ borderColor: 'rgba(0,201,167,0.4)', backgroundColor: 'rgba(0,201,167,0.06)', shadowColor: Colors.teal, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 3 },
-  dayRowPast: { opacity: 0.45 },
+  // Past: readable but visually distinct — muted colors, no opacity hack
+  dayRowPast: { borderColor: '#252528', backgroundColor: '#141416' },
 
   dayBadge:         { width: 38, height: 38, borderRadius: 19, backgroundColor: '#242428', alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: '#333' },
   dayBadgeToday:    { backgroundColor: Colors.teal, borderColor: Colors.teal, shadowColor: Colors.teal, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 8, elevation: 4 },

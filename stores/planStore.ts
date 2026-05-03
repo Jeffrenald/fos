@@ -6,11 +6,13 @@ import type { Level } from '@/constants/exercises';
 import { TEMPLATES } from '@/constants/exercises';
 
 interface PlanStore {
-  plan:        WeekPlan | null;
-  setPlan:     (plan: WeekPlan) => void;
-  generatePlan:(frequency: number, level: Level) => void;
-  overrideDay: (dayIndex: number, makeRest: boolean) => void;
-  clearPlan:   () => void;
+  plan:              WeekPlan | null;
+  setPlan:           (plan: WeekPlan) => void;
+  generatePlan:      (frequency: number, level: Level) => void;
+  overrideDay:       (dayIndex: number, makeRest: boolean) => void;
+  addExerciseToDay:  (dayIndex: number, exerciseId: string) => void;
+  removeExerciseFromDay: (dayIndex: number, exerciseId: string) => void;
+  clearPlan:         () => void;
 }
 
 export const usePlanStore = create<PlanStore>()(
@@ -59,6 +61,35 @@ export const usePlanStore = create<PlanStore>()(
           return { ...(fallback ?? d), userOverride: true };
         });
 
+        set({ plan: { ...plan, days } });
+      },
+
+      addExerciseToDay: (dayIndex, exerciseId) => {
+        const plan = get().plan;
+        if (!plan) return;
+        const days = plan.days.map(d => {
+          if (d.dayIndex !== dayIndex || d.isRest || !d.workout) return d;
+          if (d.workout.exerciseIds.includes(exerciseId)) return d;
+          return {
+            ...d,
+            userOverride: true,
+            workout: { ...d.workout, exerciseIds: [...d.workout.exerciseIds, exerciseId] },
+          };
+        });
+        set({ plan: { ...plan, days } });
+      },
+
+      removeExerciseFromDay: (dayIndex, exerciseId) => {
+        const plan = get().plan;
+        if (!plan) return;
+        const days = plan.days.map(d => {
+          if (d.dayIndex !== dayIndex || d.isRest || !d.workout) return d;
+          return {
+            ...d,
+            userOverride: true,
+            workout: { ...d.workout, exerciseIds: d.workout.exerciseIds.filter(id => id !== exerciseId) },
+          };
+        });
         set({ plan: { ...plan, days } });
       },
 
