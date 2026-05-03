@@ -15,6 +15,10 @@ import { WorkoutTemplateCard } from '@/components/workout/WorkoutTemplateCard';
 import { FrequencySheet } from '@/components/plan/FrequencySheet';
 import { DayPreviewSheet } from '@/components/plan/DayPreviewSheet';
 import { UltimateGrowthSheet } from '@/components/plan/UltimateGrowthSheet';
+import { TodayFocusCard } from '@/components/home/TodayFocusCard';
+import { WeekDots } from '@/components/home/WeekDots';
+import { LastSessionCard } from '@/components/home/LastSessionCard';
+import { KourajNudge } from '@/components/home/KourajNudge';
 import { HAITIAN_PROVERBS } from '@/constants/haitian-foods-db';
 import { TEMPLATES, WorkoutTemplate } from '@/constants/exercises';
 import { DAY_LABELS, todayDayIndex } from '@/lib/planGenerator';
@@ -155,7 +159,13 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* ── Streak card ── */}
+      {/* ── Today's focus ── */}
+      <TodayFocusCard />
+
+      {/* ── Last session recap ── */}
+      <LastSessionCard />
+
+      {/* ── Streak card with week dots ── */}
       <Card style={s.streakCard}>
         <View style={s.streakRow}>
           <Text style={s.streakFire}>🔥</Text>
@@ -165,11 +175,16 @@ export default function HomeScreen() {
               <Text style={s.streakLabel}>{i18n.t('home.streak')}</Text>
             </Text>
             <Text style={s.streakMotto}>"{proverb.ht}"</Text>
-            <Text style={s.streakTranslation}>{proverb.en}</Text>
           </View>
           {stats.streak > 0 && <Tag label="🔥 Active" variant="teal" />}
         </View>
+        <View style={{ marginTop: 14 }}>
+          <WeekDots />
+        </View>
       </Card>
+
+      {/* ── Kouraj nudge ── */}
+      <KourajNudge />
 
       {/* ── Stats 2×2 ── */}
       <View style={s.statsGrid}>

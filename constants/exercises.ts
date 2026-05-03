@@ -463,7 +463,7 @@ export const TEMPLATES: WorkoutTemplate[] = [
 
 // ─── Ultimate Growth Program ──────────────────────────────────────────────────
 // Multi-muscle-group daily splits for maximum hypertrophy.
-// Antagonist pairing + strategic overlap = maximum weekly volume per muscle.
+// You pair muscles that work opposite each other — more volume, less fatigue per session.
 
 export interface UltimateGrowthDay {
   day:         number;     // 1–5
@@ -483,7 +483,7 @@ export const ULTIMATE_GROWTH_DAYS: UltimateGrowthDay[] = [
     muscles: ['Chest', 'Back', 'Biceps'],
     exerciseIds: ['bench-press', 'barbell-row', 'incline-db-press', 'cable-row', 'bicep-curl', 'hammer-curl'],
     estimatedMin: 55,
-    logic: 'Chest push + back pull — antagonist pairing maximizes pump and allows heavier loads.',
+    logic: 'You push with your chest and pull with your back — pairing them lets you lift heavier and stay pumped longer.',
   },
   {
     day: 2,

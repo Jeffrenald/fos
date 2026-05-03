@@ -52,8 +52,8 @@ export function UltimateGrowthSheet({ visible, onClose }: UltimateGrowthSheetPro
           <View style={s.scienceCard}>
             <Ionicons name="flask-outline" size={15} color={E.gold} />
             <Text style={s.scienceText}>
-              Antagonist pairing + strategic overlap. Each day targets 2–3 muscle groups that
-              naturally work together — so you get more volume per muscle per week.
+              Each day you train 2–3 muscle groups that naturally work together — so you hit
+              more total volume per muscle each week without burning out.
             </Text>
           </View>
 
