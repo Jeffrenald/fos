@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl } from 'react-native';
 import { router } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Radius } from '@/constants/Colors';
 import { FontSize } from '@/constants/fonts';
 import { i18n } from '@/lib/i18n';
@@ -11,9 +12,14 @@ import { Tag } from '@/components/ui/Tag';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
 import { VariationSheet } from '@/components/workout/VariationSheet';
 import { WorkoutTemplateCard } from '@/components/workout/WorkoutTemplateCard';
+import { FrequencySheet } from '@/components/plan/FrequencySheet';
+import { DayPreviewSheet } from '@/components/plan/DayPreviewSheet';
 import { HAITIAN_PROVERBS } from '@/constants/haitian-foods-db';
 import { TEMPLATES, WorkoutTemplate } from '@/constants/exercises';
+import { DAY_LABELS, todayDayIndex } from '@/lib/planGenerator';
+import { usePlanStore } from '@/stores/planStore';
 import type { Level } from '@/constants/exercises';
+import type { PlannedDay } from '@/lib/planGenerator';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -97,12 +103,18 @@ export default function HomeScreen() {
   const { stats, refreshing, refresh } = useHomeStats(user?.id);
   const userLevel: Level = (user?.level as Level) ?? 'intermediate';
 
-  const [selectedTemplate, setSelected] = useState<WorkoutTemplate | null>(null);
-  const [sheetOpen, setSheetOpen]       = useState(false);
+  const plan         = usePlanStore(s => s.plan);
+  const generatePlan = usePlanStore(s => s.generatePlan);
+
+  const [selectedTemplate, setSelected]   = useState<WorkoutTemplate | null>(null);
+  const [sheetOpen, setSheetOpen]         = useState(false);
+  const [freqOpen, setFreqOpen]           = useState(false);
+  const [selectedDay, setSelectedDay]     = useState<PlannedDay | null>(null);
+  const [dayPreviewOpen, setDayPreview]   = useState(false);
 
   const proverb   = HAITIAN_PROVERBS[new Date().getDay() % HAITIAN_PROVERBS.length];
   const firstName = user?.name?.split(' ')[0] ?? 'Sak pase';
-  const todayDay  = DAYS[new Date().getDay()];
+  const todayIdx  = todayDayIndex();
 
   function openSheet(template: WorkoutTemplate) {
     setSelected(template);
@@ -112,6 +124,11 @@ export default function HomeScreen() {
   function startVariation(variationId: string, exerciseIds: string[]) {
     const sessionId = `${variationId}-${Date.now()}`;
     router.push(`/workout/${sessionId}?variation=${variationId}&ids=${exerciseIds.join(',')}`);
+  }
+
+  function openDayPreview(day: PlannedDay) {
+    setSelectedDay(day);
+    setDayPreview(true);
   }
 
   return (
@@ -190,29 +207,77 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* ── Week plan ── */}
-      <Text style={[s.sectionTitle, { marginTop: 8 }]}>{i18n.t('home.weekPlan')}</Text>
-      {DAYS.map((day) => {
-        const isToday = day === todayDay;
-        return (
-          <Card key={day} style={isToday ? [s.dayRow, s.dayRowToday] : s.dayRow}>
-            <View style={isToday ? [s.dayBadge, s.dayBadgeToday] : s.dayBadge}>
-              <Text style={isToday ? [s.dayBadgeText, s.dayBadgeTextToday] : s.dayBadgeText}>{day}</Text>
-            </View>
-            <Text style={isToday ? [s.dayValue, { color: Colors.textPrimary }] : s.dayValue}>
-              {isToday ? 'Start a workout →' : '—'}
-            </Text>
-            {isToday && (
-              <TouchableOpacity
-                style={s.startBtn}
-                onPress={() => openSheet(TEMPLATES[0])}
-                activeOpacity={0.8}
-              >
-                <Text style={s.startBtnText}>Go</Text>
-              </TouchableOpacity>
-            )}
-          </Card>
-        );
-      })}
+      <View style={s.planHeader}>
+        <Text style={s.sectionTitle}>{i18n.t('home.weekPlan')}</Text>
+        <TouchableOpacity style={s.planEditBtn} onPress={() => setFreqOpen(true)} activeOpacity={0.7}>
+          <Ionicons name={plan ? 'pencil-outline' : 'add'} size={14} color={Colors.teal} />
+          <Text style={s.planEditText}>
+            {plan ? `${plan.frequency}× / week` : 'Set up plan'}
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      {plan ? (
+        plan.days.map(day => {
+          const isToday = day.dayIndex === todayIdx;
+          const isPast  = day.dayIndex < todayIdx;
+          return (
+            <TouchableOpacity key={day.dayIndex} onPress={() => openDayPreview(day)} activeOpacity={0.8}>
+              <Card style={[
+                s.dayRow,
+                isToday && s.dayRowToday,
+                isPast  && s.dayRowPast,
+              ]}>
+                {/* Day badge */}
+                <View style={[s.dayBadge, isToday && s.dayBadgeToday, isPast && s.dayBadgePast]}>
+                  <Text style={[s.dayBadgeText, isToday && s.dayBadgeTextToday, isPast && s.dayBadgeTextPast]}>
+                    {DAY_LABELS[day.dayIndex]}
+                  </Text>
+                </View>
+
+                {/* Workout or rest */}
+                <View style={{ flex: 1 }}>
+                  {day.isRest ? (
+                    <Text style={[s.dayValue, isPast && s.dayValuePast]}>Rest</Text>
+                  ) : (
+                    <>
+                      <Text style={[s.dayWorkoutName, isPast && s.dayValuePast]}>
+                        {day.workout?.emoji} {day.workout?.name}
+                      </Text>
+                      <Text style={s.dayWorkoutMeta} numberOfLines={1}>
+                        {day.workout?.exerciseIds.length} exercises · {day.workout?.estimatedMin}m
+                      </Text>
+                    </>
+                  )}
+                </View>
+
+                {/* Status icon */}
+                {isToday && !day.isRest && (
+                  <View style={s.todayGo}>
+                    <Text style={s.todayGoText}>Go</Text>
+                  </View>
+                )}
+                {day.userOverride && (
+                  <View style={s.overrideDot} />
+                )}
+                <Ionicons name="chevron-forward" size={14} color={isPast ? '#333' : '#444'} />
+              </Card>
+            </TouchableOpacity>
+          );
+        })
+      ) : (
+        <TouchableOpacity style={s.setupPrompt} onPress={() => setFreqOpen(true)} activeOpacity={0.8}>
+          <View style={s.setupIcon}>
+            <Ionicons name="calendar-outline" size={24} color={Colors.teal} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={s.setupTitle}>Build your weekly plan</Text>
+            <Text style={s.setupSub}>Choose 3–7 days · Balanced splits · Smart rest days</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={Colors.teal} />
+        </TouchableOpacity>
+      )}
+
     </ScreenWrapper>
 
       <VariationSheet
@@ -221,6 +286,21 @@ export default function HomeScreen() {
         visible={sheetOpen}
         onClose={() => setSheetOpen(false)}
         onStart={startVariation}
+      />
+
+      <FrequencySheet
+        visible={freqOpen}
+        currentFreq={plan?.frequency ?? null}
+        userLevel={userLevel}
+        onClose={() => setFreqOpen(false)}
+        onGenerate={(f) => generatePlan(f, userLevel)}
+      />
+
+      <DayPreviewSheet
+        day={selectedDay}
+        visible={dayPreviewOpen}
+        isPast={!!selectedDay && selectedDay.dayIndex < todayIdx}
+        onClose={() => setDayPreview(false)}
       />
     </>
   );
@@ -261,29 +341,47 @@ const s = StyleSheet.create({
   statValue:    { color: '#FFFFFF', fontSize: FontSize.h2, fontFamily: 'Inter_500Medium' },
   statLabel:    { color: '#777', fontSize: FontSize.caption, marginTop: 4 },
 
-  sectionTitle: { color: Colors.textPrimary, fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium', marginBottom: 12 },
+  sectionTitle: { color: '#FFFFFF', fontSize: FontSize.bodyLg, fontFamily: 'Inter_500Medium' },
 
   templateScroll:        { marginHorizontal: -Spacing.screenPadding, marginBottom: 20 },
   templateScrollContent: { paddingHorizontal: Spacing.screenPadding },
 
-  dayRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginBottom: 8, paddingVertical: 12,
+  // Plan header
+  planHeader:  { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, marginTop: 8 },
+  planEditBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, backgroundColor: 'rgba(0,201,167,0.1)', borderRadius: Radius.full, paddingHorizontal: 12, paddingVertical: 6, borderWidth: 0.5, borderColor: 'rgba(0,201,167,0.3)' },
+  planEditText:{ color: Colors.teal, fontSize: FontSize.caption, fontFamily: 'Inter_500Medium' },
+
+  // Day rows
+  dayRow:     { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 8, paddingVertical: 10 },
+  dayRowToday:{ borderColor: 'rgba(0,201,167,0.4)', backgroundColor: 'rgba(0,201,167,0.06)', shadowColor: Colors.teal, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.25, shadowRadius: 8, elevation: 3 },
+  dayRowPast: { opacity: 0.45 },
+
+  dayBadge:         { width: 38, height: 38, borderRadius: 19, backgroundColor: '#242428', alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: '#333' },
+  dayBadgeToday:    { backgroundColor: Colors.teal, borderColor: Colors.teal, shadowColor: Colors.teal, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 8, elevation: 4 },
+  dayBadgePast:     { backgroundColor: '#1A1A1C', borderColor: '#222' },
+  dayBadgeText:     { color: '#AAAAAA', fontSize: FontSize.caption, fontFamily: 'Inter_500Medium' },
+  dayBadgeTextToday:{ color: Colors.background },
+  dayBadgeTextPast: { color: '#444' },
+
+  dayValue:        { color: '#555', fontSize: FontSize.body },
+  dayValuePast:    { color: '#333' },
+  dayWorkoutName:  { color: '#FFFFFF', fontSize: FontSize.body, fontFamily: 'Inter_500Medium', marginBottom: 2 },
+  dayWorkoutMeta:  { color: '#555', fontSize: 10 },
+
+  todayGo: { backgroundColor: Colors.teal, borderRadius: 8, paddingHorizontal: 10, paddingVertical: 5, marginRight: 4 },
+  todayGoText: { color: Colors.background, fontSize: 10, fontFamily: 'Inter_500Medium' },
+  overrideDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: '#F0B040', marginRight: 2 },
+
+  // Setup prompt
+  setupPrompt: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: '#1C1C1E', borderRadius: 16,
+    borderWidth: 1, borderColor: 'rgba(0,201,167,0.25)',
+    padding: 16, marginBottom: 8,
+    shadowColor: Colors.teal, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.2, shadowRadius: 10, elevation: 3,
   },
-  dayRowToday:       { borderColor: Colors.tealBorder, backgroundColor: Colors.tealDim },
-  dayBadge: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: Colors.surfaceRaised,
-    alignItems: 'center', justifyContent: 'center',
-  },
-  dayBadgeToday:     { backgroundColor: Colors.teal },
-  dayBadgeText:      { color: Colors.textMuted,   fontSize: FontSize.caption, fontFamily: 'Inter_500Medium' },
-  dayBadgeTextToday: { color: Colors.background },
-  dayValue:          { color: Colors.textMuted, fontSize: FontSize.body, flex: 1 },
-  startBtn: {
-    backgroundColor: Colors.teal, borderRadius: Radius.sm,
-    paddingHorizontal: 14, paddingVertical: 6,
-  },
-  startBtnText: { color: Colors.background, fontSize: FontSize.caption, fontFamily: 'Inter_500Medium' },
+  setupIcon:  { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,201,167,0.12)', alignItems: 'center', justifyContent: 'center' },
+  setupTitle: { color: '#FFFFFF', fontSize: FontSize.body, fontFamily: 'Inter_500Medium', marginBottom: 3 },
+  setupSub:   { color: '#666', fontSize: 10, lineHeight: 14 },
 });
 
