@@ -8,6 +8,7 @@ import { Colors, Radius, Spacing } from '@/constants/Colors';
 import { FontSize } from '@/constants/fonts';
 import { i18n, setLanguage, Language } from '@/lib/i18n';
 import { useUserStore } from '@/stores/userStore';
+import { usePlanStore } from '@/stores/planStore';
 import { supabase } from '@/lib/supabase';
 
 const { width } = Dimensions.get('window');
@@ -185,6 +186,7 @@ export default function OnboardingScreen() {
   });
 
   const { setUser, setOnboarded } = useUserStore();
+  const setPlan = usePlanStore(s => s.setPlan);
 
   const TOTAL = 4;
 
@@ -232,6 +234,21 @@ export default function OnboardingScreen() {
       });
 
       setOnboarded(true);
+
+      // Ask Kouraj to generate the first week plan in the background
+      // Falls back gracefully if API is unavailable
+      supabase.functions.invoke('generate-plan', {
+        body: {
+          goal:       data.goal,
+          level:      data.level,
+          equipment:  data.equipment,
+          language:   data.language,
+          daysPerWeek: data.level === 'beginner' ? 3 : data.level === 'intermediate' ? 4 : 5,
+        },
+      }).then(({ data: res }) => {
+        if (res?.plan) setPlan(res.plan);
+      }).catch(() => { /* silently fall back — user can set plan manually */ });
+
       router.replace('/(tabs)');
     } catch (e) {
       console.error(e);
