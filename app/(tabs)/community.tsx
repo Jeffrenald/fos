@@ -648,7 +648,7 @@ export default function CommunityScreen() {
   ] : (displayPosts.length > 0 ? displayPosts : []);
 
   return (
-    <>
+    <View style={{ flex: 1, backgroundColor: Colors.background }}>
       <FlatList
         data={SAMPLES}
         keyExtractor={p => p.id}
@@ -660,6 +660,7 @@ export default function CommunityScreen() {
             onShare={handleShare}
           />
         )}
+        style={{ backgroundColor: Colors.background }}
         contentContainerStyle={[s.list, { paddingHorizontal: Spacing.screenPadding }]}
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchPosts(); }} tintColor={Colors.teal} />}
@@ -696,7 +697,7 @@ export default function CommunityScreen() {
 
       <NewPostSheet visible={postOpen} groupSlug={activeGroup} onClose={() => setPostOpen(false)} onPosted={fetchPosts} />
       <CommentsSheet post={commentPost} visible={!!commentPost} onClose={() => setCommentPost(null)} onCommented={handleCommented} />
-    </>
+    </View>
   );
 }
 
