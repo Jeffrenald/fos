@@ -1,4 +1,6 @@
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -21,54 +23,74 @@ export interface DayLog {
 }
 
 interface NutritionStore {
-  logs:      Record<string, DayLog>;
-  addEntry:  (date: string, meal: MealType, entry: Omit<FoodEntry, 'id'>) => void;
+  logs:        Record<string, DayLog>;
+  addEntry:    (date: string, meal: MealType, entry: Omit<FoodEntry, 'id'>) => void;
   removeEntry: (date: string, entryId: string) => void;
-  addWater:  (date: string) => void;
+  addWater:    (date: string) => void;
   removeWater: (date: string) => void;
-  getDay:    (date: string) => DayLog;
+  getDay:      (date: string) => DayLog;
+  // Prune logs older than 30 days to keep storage lean
+  pruneOldLogs: () => void;
 }
 
 function makeDayLog(date: string): DayLog {
   return { date, entries: [], waterCups: 0 };
 }
 
-export const useNutritionStore = create<NutritionStore>((set, get) => ({
-  logs: {},
+export const useNutritionStore = create<NutritionStore>()(
+  persist(
+    (set, get) => ({
+      logs: {},
 
-  addEntry: (date, meal, entry) => {
-    const logs = { ...get().logs };
-    if (!logs[date]) logs[date] = makeDayLog(date);
-    logs[date] = {
-      ...logs[date],
-      entries: [
-        ...logs[date].entries,
-        { ...entry, meal_type: meal, id: `${Date.now()}-${Math.random()}` },
-      ],
-    };
-    set({ logs });
-  },
+      addEntry: (date, meal, entry) => {
+        const logs = { ...get().logs };
+        if (!logs[date]) logs[date] = makeDayLog(date);
+        logs[date] = {
+          ...logs[date],
+          entries: [
+            ...logs[date].entries,
+            { ...entry, meal_type: meal, id: `${Date.now()}-${Math.random()}` },
+          ],
+        };
+        set({ logs });
+      },
 
-  removeEntry: (date, entryId) => {
-    const logs = { ...get().logs };
-    if (!logs[date]) return;
-    logs[date] = { ...logs[date], entries: logs[date].entries.filter(e => e.id !== entryId) };
-    set({ logs });
-  },
+      removeEntry: (date, entryId) => {
+        const logs = { ...get().logs };
+        if (!logs[date]) return;
+        logs[date] = { ...logs[date], entries: logs[date].entries.filter(e => e.id !== entryId) };
+        set({ logs });
+      },
 
-  addWater: (date) => {
-    const logs = { ...get().logs };
-    if (!logs[date]) logs[date] = makeDayLog(date);
-    logs[date] = { ...logs[date], waterCups: Math.min(8, logs[date].waterCups + 1) };
-    set({ logs });
-  },
+      addWater: (date) => {
+        const logs = { ...get().logs };
+        if (!logs[date]) logs[date] = makeDayLog(date);
+        logs[date] = { ...logs[date], waterCups: Math.min(8, logs[date].waterCups + 1) };
+        set({ logs });
+      },
 
-  removeWater: (date) => {
-    const logs = { ...get().logs };
-    if (!logs[date]) return;
-    logs[date] = { ...logs[date], waterCups: Math.max(0, logs[date].waterCups - 1) };
-    set({ logs });
-  },
+      removeWater: (date) => {
+        const logs = { ...get().logs };
+        if (!logs[date]) return;
+        logs[date] = { ...logs[date], waterCups: Math.max(0, logs[date].waterCups - 1) };
+        set({ logs });
+      },
 
-  getDay: (date) => get().logs[date] ?? makeDayLog(date),
-}));
+      getDay: (date) => get().logs[date] ?? makeDayLog(date),
+
+      pruneOldLogs: () => {
+        const cutoff = new Date();
+        cutoff.setDate(cutoff.getDate() - 30);
+        const cutoffStr = cutoff.toISOString().split('T')[0];
+        const logs = Object.fromEntries(
+          Object.entries(get().logs).filter(([date]) => date >= cutoffStr)
+        );
+        set({ logs });
+      },
+    }),
+    {
+      name:    'fos-nutrition',
+      storage: createJSONStorage(() => AsyncStorage),
+    },
+  ),
+);

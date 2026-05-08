@@ -331,7 +331,7 @@ export default function WorkoutSessionScreen() {
     )
   );
   const [resting, setResting] = useState(false);
-  const [startedAt]           = useState(() => new Date());
+  const [startedAt] = useState(() => new Date().toISOString());
   const [saving, setSaving]   = useState(false);
 
   const current     = exercises[currentIdx];
@@ -374,7 +374,7 @@ export default function WorkoutSessionScreen() {
     setSaving(true);
     try {
       const endedAt  = new Date();
-      const duration = Math.round((endedAt.getTime() - startedAt.getTime()) / 1000);
+      const duration = Math.round((endedAt.getTime() - new Date(startedAt).getTime()) / 1000);
       const volume   = sets.flat().reduce((sum, s) => {
         const w = parseFloat(s.weight) || 0;
         const r = parseInt(s.reps)    || 0;
@@ -385,7 +385,7 @@ export default function WorkoutSessionScreen() {
         .from('workout_sessions')
         .insert({
           user_id:          user?.id,
-          started_at:       startedAt.toISOString(),
+          started_at:       startedAt,
           completed_at:     endedAt.toISOString(),
           duration_seconds: duration,
           total_volume_kg:  Math.round(volume * 10) / 10,
@@ -416,7 +416,7 @@ export default function WorkoutSessionScreen() {
   }
 
   function confirmFinish() {
-    const elapsed = Math.round((Date.now() - startedAt.getTime()) / 60000);
+    const elapsed = Math.round((Date.now() - new Date(startedAt).getTime()) / 60000);
     Alert.alert(
       'Finish Session?',
       `${exercises.length} exercises · ${elapsed} min`,
