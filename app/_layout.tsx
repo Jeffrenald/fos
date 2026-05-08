@@ -5,6 +5,12 @@ import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { Inter_400Regular, Inter_500Medium, useFonts } from '@expo-google-fonts/inter';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import {
+  requestNotificationPermission,
+  scheduleStreakReminder,
+  scheduleMissedSession,
+} from '@/lib/notifications';
+import { useUserStore } from '@/stores/userStore';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -14,8 +20,8 @@ SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({ Inter_400Regular, Inter_500Medium });
+  const user = useUserStore(s => s.user);
 
-  // On web fonts load via CSS — don't block on them
   const ready = Platform.OS === 'web' ? true : fontsLoaded;
 
   useEffect(() => {
@@ -26,14 +32,25 @@ export default function RootLayout() {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
 
+  // Request notification permission and schedule reminders
+  useEffect(() => {
+    if (!user?.id) return;
+    requestNotificationPermission().then(granted => {
+      if (!granted) return;
+      const lang = user.language ?? 'en';
+      scheduleStreakReminder(lang);
+      scheduleMissedSession(lang);
+    });
+  }, [user?.id, user?.language]);
+
   if (!ready) return null;
 
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)"             options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)"             options={{ headerShown: false }} />
+        <Stack.Screen name="(auth)"              options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)"              options={{ headerShown: false }} />
         <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>

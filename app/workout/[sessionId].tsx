@@ -5,12 +5,19 @@ import {
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import * as Speech from 'expo-speech';
 import { Colors, Radius, Spacing } from '@/constants/Colors';
 import { FontSize } from '@/constants/fonts';
 import { EXERCISES, WORKOUT_TEMPLATES, Exercise } from '@/constants/exercises';
 import { ExerciseAnimation } from '@/components/workout/ExerciseAnimation';
 import { useUserStore } from '@/stores/userStore';
 import { supabase } from '@/lib/supabase';
+
+const LANG_MAP: Record<string, string> = { en: 'en-US', fr: 'fr-FR', ht: 'fr-HT' };
+
+function speak(text: string, lang: string) {
+  Speech.speak(text, { language: LANG_MAP[lang] ?? 'en-US', rate: 0.95 });
+}
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -333,12 +340,24 @@ export default function WorkoutSessionScreen() {
   const [resting, setResting] = useState(false);
   const [startedAt] = useState(() => new Date().toISOString());
   const [saving, setSaving]   = useState(false);
-
+  const [voiceOn, setVoiceOn] = useState(false);
+  const lang = user?.language ?? 'en';
   const current     = exercises[currentIdx];
   const currentSets = sets[currentIdx] ?? [];
   const allSetsDone = currentSets.length > 0 && currentSets.every(s => s.done);
   const isLast      = currentIdx === exercises.length - 1;
   const progress    = (currentIdx / exercises.length) * 100;
+
+  // Announce exercise when it changes (voice mode)
+  useEffect(() => {
+    if (voiceOn && current) {
+      Speech.stop();
+      speak(current.name, lang);
+    }
+  }, [currentIdx, voiceOn]);
+
+  // Stop speech when leaving
+  useEffect(() => () => { Speech.stop(); }, []);
 
   function updateSet(exIdx: number, setIdx: number, field: 'weight' | 'reps', val: string) {
     setSets(prev => {
@@ -355,7 +374,10 @@ export default function WorkoutSessionScreen() {
       next[currentIdx][setIdx] = { ...next[currentIdx][setIdx], done: !alreadyDone };
       return next;
     });
-    if (!alreadyDone) setResting(true);
+    if (!alreadyDone) {
+      setResting(true);
+      if (voiceOn) speak(`Set ${setIdx + 1} done. Rest.`, lang);
+    }
   }
 
   function jumpToExercise(idx: number) {
@@ -454,6 +476,22 @@ export default function WorkoutSessionScreen() {
           </View>
           <Text style={screen.progressText}>{sessionLabel}  ·  {currentIdx + 1}/{exercises.length}</Text>
         </View>
+        {/* Voice toggle */}
+        <TouchableOpacity
+          onPress={() => {
+            const next = !voiceOn;
+            setVoiceOn(next);
+            if (next && current) speak(current.name, lang);
+            else Speech.stop();
+          }}
+          style={[screen.voiceBtn, voiceOn && screen.voiceBtnOn]}
+        >
+          <Ionicons
+            name={voiceOn ? 'volume-high' : 'volume-mute-outline'}
+            size={18}
+            color={voiceOn ? Colors.teal : Colors.textMuted}
+          />
+        </TouchableOpacity>
         <TouchableOpacity onPress={confirmFinish}>
           <Text style={screen.finishLink}>Finish</Text>
         </TouchableOpacity>
@@ -485,7 +523,7 @@ export default function WorkoutSessionScreen() {
         {resting && (
           <RestTimer
             seconds={current.defaultRest}
-            onDone={() => setResting(false)}
+            onDone={() => { setResting(false); if (voiceOn) speak("Time's up. Next set.", lang); }}
             onSkip={() => setResting(false)}
           />
         )}
@@ -562,6 +600,8 @@ const screen = StyleSheet.create({
   progressFill: { height: 4, backgroundColor: Colors.teal },
   progressText: { color: Colors.textMuted, fontSize: FontSize.caption, marginTop: 4 },
   finishLink:   { color: Colors.teal, fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
+  voiceBtn:     { width: 32, height: 32, borderRadius: 16, backgroundColor: '#1A1A1C', alignItems: 'center', justifyContent: 'center', borderWidth: 0.5, borderColor: '#252528', marginRight: 8 },
+  voiceBtnOn:   { backgroundColor: 'rgba(0,201,167,0.12)', borderColor: 'rgba(0,201,167,0.4)' },
 
   hero: {
     backgroundColor: Colors.surface,
