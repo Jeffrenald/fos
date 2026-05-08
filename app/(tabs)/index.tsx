@@ -311,6 +311,7 @@ export default function HomeScreen() {
       <VariationSheet
         template={selectedTemplate}
         userLevel={userLevel}
+        userEquipment={(user?.equipment as any) ?? 'gym'}
         visible={sheetOpen}
         onClose={() => setSheetOpen(false)}
         onStart={startVariation}

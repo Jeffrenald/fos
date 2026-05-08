@@ -241,7 +241,125 @@ export const EXERCISES: Exercise[] = [
     advantages: ['Most challenging and effective core strength builder', 'Builds the entire anterior chain simultaneously', 'Progresses from kneeling to full toe rollouts as you advance'],
     avoid: ['Letting hips sag at full extension — immediate lower back injury risk', 'Rolling out beyond your current core control ability', 'Pulling with your arms on the way back instead of your core'],
   },
+
+  // ── BODYWEIGHT / HOME ── added to give home & no-equipment users full programs
+
+  {
+    id: 'pike-push-up', name: 'Pike Push-Up', type: 'push',
+    musclesPrimary: ['shoulders'], musclesSecondary: ['triceps'],
+    defaultSets: 3, defaultReps: '12', defaultRest: 60, equipment: ['home', 'none'],
+    instructions_en: 'Hips high in an inverted V. Lower your head toward the floor by bending elbows, then press back up.',
+    advantages: ['Best bodyweight shoulder builder — no equipment needed', 'Builds pressing strength as a pull-up alternative at home', 'Easy to scale — elevate your feet for more shoulder load'],
+    avoid: ['Letting your hips drop during the press', 'Flaring elbows too wide — keep them at 45°', 'Rushing the descent — slow and controlled is the goal'],
+  },
+  {
+    id: 'diamond-push-up', name: 'Diamond Push-Up', type: 'push',
+    musclesPrimary: ['triceps'], musclesSecondary: ['chest'],
+    defaultSets: 3, defaultReps: '12', defaultRest: 60, equipment: ['home', 'none'],
+    instructions_en: 'Hands forming a diamond under your chest. Lower slowly, press up. Keep elbows close to body.',
+    advantages: ['Most effective bodyweight triceps exercise', 'Builds the back of your arms with zero equipment', 'Harder than standard push-up — great progression'],
+    avoid: ['Letting your hips sag during the movement', 'Elbows flaring outward — they should stay tucked close', 'Partial reps — your chest should nearly touch the diamond'],
+  },
+  {
+    id: 'bodyweight-squat', name: 'Bodyweight Squat', type: 'legs',
+    musclesPrimary: ['legs', 'glutes'], musclesSecondary: ['core'],
+    defaultSets: 4, defaultReps: '20', defaultRest: 45, equipment: ['home', 'none'],
+    instructions_en: 'Feet shoulder-width, toes slightly out. Sit back and down until thighs are parallel. Drive through heels.',
+    advantages: ['Foundational leg movement requiring zero equipment', 'Builds quad and glute strength at any fitness level', 'High reps build muscular endurance and burn calories'],
+    avoid: ['Knees caving inward during the squat', 'Rising up onto your toes — keep heels flat', 'Rounding your lower back at the bottom'],
+  },
+  {
+    id: 'jump-squat', name: 'Jump Squat', type: 'legs',
+    musclesPrimary: ['legs', 'glutes'], musclesSecondary: ['core'],
+    defaultSets: 3, defaultReps: '15', defaultRest: 60, equipment: ['home', 'none'],
+    instructions_en: 'Squat down, then explode upward and jump. Land softly with knees slightly bent, absorb the impact.',
+    advantages: ['Builds explosive leg power and burns significantly more calories', 'Adds cardio element to your leg training', 'No equipment and can be done anywhere'],
+    avoid: ['Landing with locked knees — always absorb the impact with a soft bend', 'Jumping on hard concrete without cushioning', 'Rushing reps — quality of the jump matters more than speed'],
+  },
+  {
+    id: 'glute-bridge', name: 'Glute Bridge', type: 'legs',
+    musclesPrimary: ['glutes'], musclesSecondary: ['legs', 'core'],
+    defaultSets: 3, defaultReps: '15', defaultRest: 45, equipment: ['home', 'none'],
+    instructions_en: 'Lie on your back, feet flat, knees bent. Drive hips up by squeezing glutes. Pause at the top, lower slowly.',
+    advantages: ['Best bodyweight glute isolation — directly targets your glutes', 'Zero equipment, zero joint stress — ideal for all levels', 'Improves hip extension strength used in every lower body movement'],
+    avoid: ['Extending too far and arching your lower back at the top', 'Pushing through your heels only — use your whole foot', 'Rushing the reps — slow and squeeze is the technique'],
+  },
+  {
+    id: 'inverted-row', name: 'Inverted Row', type: 'pull',
+    musclesPrimary: ['back'], musclesSecondary: ['biceps'],
+    defaultSets: 3, defaultReps: '12', defaultRest: 60, equipment: ['home'],
+    instructions_en: 'Lie under a table or low bar. Grip overhand, body straight. Pull your chest up to the bar, lower slowly.',
+    advantages: ['Best home alternative to the barbell row — trains your full back', 'Scales easily — bend knees to make it easier, straighten to make it harder', 'Safe for your lower back compared to bent-over rowing'],
+    avoid: ['Letting your hips sag during the pull — keep your body rigid', 'Pulling with your arms instead of initiating with your shoulder blades', 'Using a surface that could slip or break under your weight'],
+  },
+  {
+    id: 'bicycle-crunch', name: 'Bicycle Crunch', type: 'core',
+    musclesPrimary: ['core'], musclesSecondary: [],
+    defaultSets: 3, defaultReps: '20 each', defaultRest: 45, equipment: ['home', 'none'],
+    instructions_en: 'Hands behind head, alternate bringing elbow to opposite knee while extending the other leg. Rotate from your torso.',
+    advantages: ['One of the highest ab activation exercises — studies confirm it', 'Hits both rectus abdominis and obliques simultaneously', 'Zero equipment and fits into any home workout easily'],
+    avoid: ['Pulling your neck with your hands — keep the movement in your core', 'Rushing through the reps — slow rotation engages more muscle', 'Letting your lower back arch off the floor'],
+  },
+  {
+    id: 'mountain-climber', name: 'Mountain Climber', type: 'core',
+    musclesPrimary: ['core'], musclesSecondary: ['shoulders', 'legs'],
+    defaultSets: 3, defaultReps: '30s', defaultRest: 45, equipment: ['home', 'none'],
+    instructions_en: 'High plank position. Drive your knees toward your chest alternately, as fast as you can control.',
+    advantages: ['Burns fat while building core strength simultaneously', 'Improves cardio without any equipment at all', 'Trains the hip flexors and stabilizers in a functional pattern'],
+    avoid: ['Letting your hips rise up during the movement', 'Moving so fast you lose core engagement — keep it controlled', 'Holding your breath — breathe continuously throughout'],
+  },
+  {
+    id: 'superman-hold', name: 'Superman Hold', type: 'pull',
+    musclesPrimary: ['back'], musclesSecondary: ['glutes'],
+    defaultSets: 3, defaultReps: '12', defaultRest: 45, equipment: ['home', 'none'],
+    instructions_en: 'Lie face down, arms extended overhead. Lift arms, chest, and legs simultaneously. Squeeze and hold 2s at the top.',
+    advantages: ['Directly strengthens the lower back — often neglected in home workouts', 'Improves posture by training the posterior chain', 'Perfect for beginners building foundational back strength'],
+    avoid: ['Cranking your neck up — keep it neutral throughout', 'Holding your breath at the top', 'Using momentum to swing up — control every rep'],
+  },
+  {
+    id: 'tricep-dip-chair', name: 'Chair Dip', type: 'push',
+    musclesPrimary: ['triceps'], musclesSecondary: ['shoulders'],
+    defaultSets: 3, defaultReps: '15', defaultRest: 60, equipment: ['home'],
+    instructions_en: 'Hands on a stable chair behind you, legs extended or bent. Lower your body by bending elbows, press back up.',
+    advantages: ['Direct tricep training with only a chair — works at home', 'Builds the back of your arms for a more defined look', 'Easily progressed by extending legs further out'],
+    avoid: ['Flaring elbows outward — keep them pointing backward', 'Going too deep and stressing the shoulder joint', 'Using an unstable surface — the chair must be solid'],
+  },
 ];
+
+// ─── Equipment filter ─────────────────────────────────────────────────────────
+// Maps the user's profile equipment to which exercise equipment tags are compatible.
+// gym     → full access to everything
+// home    → home + bodyweight exercises (pull-up bar, dip bars, basic setup)
+// dumbbells → dumbbell + home + bodyweight (working out at home with dumbbells)
+// none    → bodyweight only
+
+export type UserEquipment = 'gym' | 'home' | 'dumbbells' | 'none';
+
+const EQUIPMENT_COMPAT: Record<UserEquipment, Equipment[]> = {
+  gym:       ['gym', 'home', 'dumbbells', 'none'],
+  home:      ['home', 'none'],
+  dumbbells: ['home', 'dumbbells', 'none'],
+  none:      ['none'],
+};
+
+export function filterByEquipment(
+  exercises: Exercise[],
+  userEquipment: UserEquipment | null | undefined,
+): Exercise[] {
+  if (!userEquipment || userEquipment === 'gym') return exercises;
+  const compat = EQUIPMENT_COMPAT[userEquipment];
+  return exercises.filter(ex => ex.equipment.some(e => compat.includes(e)));
+}
+
+export function getEquipmentLabel(eq: UserEquipment | null | undefined): string {
+  switch (eq) {
+    case 'gym':       return 'Full Gym';
+    case 'home':      return 'Home Gym';
+    case 'dumbbells': return 'Dumbbells';
+    case 'none':      return 'Bodyweight';
+    default:          return 'All Equipment';
+  }
+}
 
 // Quick-access maps
 export const EXERCISES_BY_TYPE: Record<WorkoutType, Exercise[]> = {

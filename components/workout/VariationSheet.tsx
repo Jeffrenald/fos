@@ -5,7 +5,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { Colors, Radius, Spacing } from '@/constants/Colors';
 import { FontSize } from '@/constants/fonts';
-import { WorkoutTemplate, WorkoutVariation, Level } from '@/constants/exercises';
+import {
+  WorkoutTemplate, WorkoutVariation, Level,
+  filterByEquipment, getEquipmentLabel, UserEquipment, EXERCISES,
+} from '@/constants/exercises';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 
@@ -176,15 +179,27 @@ const card = StyleSheet.create({
 
 // ─── Sheet ────────────────────────────────────────────────────────────────────
 interface VariationSheetProps {
-  template:  WorkoutTemplate | null;
-  userLevel: Level;
-  visible:   boolean;
-  onClose:   () => void;
-  onStart:   (variationId: string, exerciseIds: string[]) => void;
+  template:       WorkoutTemplate | null;
+  userLevel:      Level;
+  userEquipment?: UserEquipment;
+  visible:        boolean;
+  onClose:        () => void;
+  onStart:        (variationId: string, exerciseIds: string[]) => void;
 }
 
-export function VariationSheet({ template, userLevel, visible, onClose, onStart }: VariationSheetProps) {
+export function VariationSheet({
+  template, userLevel, userEquipment = 'gym', visible, onClose, onStart,
+}: VariationSheetProps) {
   if (!template) return null;
+
+  // Filter each variation's exercise list to only what the user can actually do
+  const compatibleExercises = filterByEquipment(EXERCISES, userEquipment);
+  const compatibleIds = new Set(compatibleExercises.map(e => e.id));
+
+  function filteredVariation(v: WorkoutVariation) {
+    const ids = v.exerciseIds.filter(id => compatibleIds.has(id));
+    return { ...v, exerciseIds: ids, estimatedMin: Math.round(v.estimatedMin * ids.length / Math.max(v.exerciseIds.length, 1)) };
+  }
 
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose}>
@@ -199,7 +214,11 @@ export function VariationSheet({ template, userLevel, visible, onClose, onStart 
               <Text style={s.emoji}>{template.emoji}</Text>
               <View>
                 <Text style={s.title}>{template.name}</Text>
-                <Text style={s.subtitle}>Choose your level to start</Text>
+                <Text style={s.subtitle}>
+                  {userEquipment !== 'gym'
+                    ? `Filtered for ${getEquipmentLabel(userEquipment)}`
+                    : 'Choose your level to start'}
+                </Text>
               </View>
             </View>
             <TouchableOpacity onPress={onClose} style={s.closeBtn}>
@@ -208,14 +227,18 @@ export function VariationSheet({ template, userLevel, visible, onClose, onStart 
           </View>
 
           <ScrollView style={s.scroll} contentContainerStyle={s.scrollContent} showsVerticalScrollIndicator={false} bounces>
-            {template.variations.map(v => (
-              <VariationCard
-                key={v.id}
-                variation={v}
-                recommended={v.level === userLevel}
-                onStart={() => { onClose(); onStart(v.id, v.exerciseIds); }}
-              />
-            ))}
+            {template.variations.map(v => {
+              const fv = filteredVariation(v);
+              if (fv.exerciseIds.length === 0) return null; // hide if no compatible exercises
+              return (
+                <VariationCard
+                  key={v.id}
+                  variation={fv}
+                  recommended={v.level === userLevel}
+                  onStart={() => { onClose(); onStart(v.id, fv.exerciseIds); }}
+                />
+              );
+            })}
           </ScrollView>
         </View>
       </View>

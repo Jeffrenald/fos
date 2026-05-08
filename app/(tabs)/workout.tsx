@@ -18,7 +18,10 @@ import { VariationSheet } from '@/components/workout/VariationSheet';
 import { ExerciseDetailSheet } from '@/components/workout/ExerciseDetailSheet';
 import { UltimateGrowthSheet } from '@/components/plan/UltimateGrowthSheet';
 import { MuscleMap, MuscleFilter, MUSCLE_TO_GROUP } from '@/components/train/MuscleMap';
-import { EXERCISES, TEMPLATES, WorkoutTemplate, Exercise, WorkoutType } from '@/constants/exercises';
+import {
+  EXERCISES, TEMPLATES, WorkoutTemplate, Exercise, WorkoutType,
+  filterByEquipment, getEquipmentLabel, UserEquipment,
+} from '@/constants/exercises';
 import { useUserStore } from '@/stores/userStore';
 import { supabase } from '@/lib/supabase';
 import type { Level } from '@/constants/exercises';
@@ -328,9 +331,13 @@ const fab = StyleSheet.create({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function WorkoutScreen() {
-  const user      = useUserStore(s => s.user);
-  const userLevel: Level = (user?.level as Level) ?? 'intermediate';
-  const recentIds = useRecentExercises(user?.id);
+  const user         = useUserStore(s => s.user);
+  const userLevel: Level          = (user?.level     as Level)         ?? 'intermediate';
+  const userEquipment: UserEquipment = (user?.equipment as UserEquipment) ?? 'gym';
+  const recentIds    = useRecentExercises(user?.id);
+
+  // All exercises available for the user's equipment
+  const availableExercises = filterByEquipment(EXERCISES, userEquipment);
 
   const [activeTab,      setActiveTab]      = useState<Tab>('start');
   const [typeFilter,     setTypeFilter]     = useState<TypeFilter>('all');
@@ -344,9 +351,12 @@ export default function WorkoutScreen() {
   const [detailOpen,     setDetailOpen]     = useState(false);
   const [ugOpen,         setUgOpen]         = useState(false);
 
-  const notTrained = EXERCISES.filter(e => !recentIds.has(e.id)).slice(0, 8);
+  // "Not trained recently" — only from exercises available for their equipment
+  const notTrained = availableExercises
+    .filter(e => !recentIds.has(e.id))
+    .slice(0, 8);
 
-  const filtered = EXERCISES.filter(ex => {
+  const filtered = availableExercises.filter(ex => {
     const matchType   = typeFilter === 'all' || ex.type === typeFilter;
     const matchMuscle = muscleFilter === 'all'
       || MUSCLE_TO_GROUP[muscleFilter].some(m =>
@@ -442,7 +452,9 @@ export default function WorkoutScreen() {
             activeOpacity={0.8}
           >
             <Ionicons name="barbell-outline" size={16} color={Colors.teal} />
-            <Text style={s.libraryLinkText}>Browse all {EXERCISES.length} exercises</Text>
+            <Text style={s.libraryLinkText}>
+            Browse {availableExercises.length} exercises for your equipment
+          </Text>
             <Ionicons name="arrow-forward" size={14} color={Colors.teal} style={{ marginLeft: 'auto' }} />
           </TouchableOpacity>
         </ScrollView>
@@ -452,12 +464,24 @@ export default function WorkoutScreen() {
       {activeTab === 'library' && (
         <View style={s.libraryWrap}>
 
+          {/* Equipment context banner */}
+          {userEquipment !== 'gym' && (
+            <View style={s.equipBanner}>
+              <Ionicons name="fitness-outline" size={13} color={Colors.teal} />
+              <Text style={s.equipBannerText}>
+                Showing {availableExercises.length} exercises for{' '}
+                <Text style={s.equipBannerBold}>{getEquipmentLabel(userEquipment)}</Text>
+              </Text>
+              <Text style={s.equipBannerSub}>Change in Profile → Equipment</Text>
+            </View>
+          )}
+
           {/* Search */}
           <View style={s.searchWrap}>
             <Ionicons name="search-outline" size={16} color="#555" />
             <TextInput
               style={s.searchInput}
-              placeholder={`Search ${EXERCISES.length} exercises…`}
+              placeholder={`Search ${availableExercises.length} exercises…`}
               placeholderTextColor="#3A3A3E"
               value={search}
               onChangeText={setSearch}
@@ -478,7 +502,9 @@ export default function WorkoutScreen() {
             contentContainerStyle={s.chipContent}
           >
             {TYPE_CHIPS.map(c => {
-              const count  = c.value === 'all' ? EXERCISES.length : EXERCISES.filter(e => e.type === c.value).length;
+              const count = c.value === 'all'
+                ? availableExercises.length
+                : availableExercises.filter(e => e.type === c.value).length;
               const active = typeFilter === c.value;
               return (
                 <TouchableOpacity
@@ -575,6 +601,7 @@ export default function WorkoutScreen() {
       <VariationSheet
         template={selectedTmpl}
         userLevel={userLevel}
+        userEquipment={userEquipment}
         visible={sheetOpen}
         onClose={() => setSheetOpen(false)}
         onStart={startVariation}
@@ -631,6 +658,19 @@ const s = StyleSheet.create({
     color: Colors.teal, fontSize: FontSize.body,
     fontFamily: 'Inter_500Medium', flex: 1,
   },
+
+  // ── Equipment banner ──
+  equipBanner: {
+    flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: S.xs,
+    backgroundColor: 'rgba(0,201,167,0.06)',
+    borderRadius: S.sm + 2, borderWidth: 0.5,
+    borderColor: 'rgba(0,201,167,0.18)',
+    paddingHorizontal: S.md, paddingVertical: S.sm + 1,
+    marginBottom: S.md,
+  },
+  equipBannerText: { color: '#AAAAAA', fontSize: FontSize.caption, flex: 1 },
+  equipBannerBold: { color: Colors.teal, fontFamily: 'Inter_500Medium' },
+  equipBannerSub:  { color: '#444', fontSize: 10, width: '100%', paddingLeft: S.xl - 1 },
 
   // ── Library tab ──
   libraryWrap: {
