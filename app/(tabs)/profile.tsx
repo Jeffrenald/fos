@@ -175,11 +175,22 @@ export default function ProfileScreen() {
     open: boolean; type: 'goal' | 'level' | 'equipment' | 'language' | null;
   }>({ open: false, type: null });
 
-  // Pref toggles (local only for now)
+  // Pref toggles — load from Supabase, save on change
   const [notifs,   setNotifs]   = useState(true);
   const [kourajCI, setKourajCI] = useState(true);
 
   const uid = user?.id;
+
+  // Load saved preferences
+  useEffect(() => {
+    if (!uid) return;
+    supabase.from('profiles').select('notifications_on, kouraj_checkins_on').eq('id', uid).single()
+      .then(({ data }) => {
+        if (!data) return;
+        if (data.notifications_on   != null) setNotifs(data.notifications_on);
+        if (data.kouraj_checkins_on != null) setKourajCI(data.kouraj_checkins_on);
+      });
+  }, [uid]);
 
   useEffect(() => {
     if (!uid) return;
@@ -251,7 +262,7 @@ export default function ProfileScreen() {
   };
   const pickerTitles = {
     goal: 'Your Goal', level: 'Your Level',
-    equipment: 'Your Equipment', language: 'Language / Lang / Lang',
+    equipment: 'Your Equipment', language: 'Choose Language · Chwazi Lang · Choisir Langue',
   };
 
   return (
@@ -316,7 +327,15 @@ export default function ProfileScreen() {
                 <Text style={s.proFeatureText}>{f}</Text>
               </View>
             ))}
-            <TouchableOpacity style={s.proCTA} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={s.proCTA}
+              activeOpacity={0.85}
+              onPress={() => Alert.alert(
+                'Fòs Pro — Coming Soon 🚀',
+                'Pro features include:\n\n• Kouraj AI in French & Kreyòl\n• Full nutrition tracking\n• Voice-guided workouts\n• Community challenges\n\nLaunching soon. You\'ll be notified, frè m!',
+                [{ text: 'Can\'t wait! 💪' }]
+              )}
+            >
               <Text style={s.proCTAText}>Start 7-Day Free Trial</Text>
             </TouchableOpacity>
           </View>
@@ -354,7 +373,10 @@ export default function ProfileScreen() {
             </View>
             <Text style={[sr.label, { flex: 1 }]}>Push Notifications</Text>
             <Switch
-              value={notifs} onValueChange={setNotifs}
+              value={notifs} onValueChange={v => {
+                setNotifs(v);
+                if (uid) supabase.from('profiles').update({ notifications_on: v }).eq('id', uid).then(() => {});
+              }}
               trackColor={{ true: Colors.teal, false: '#333' }}
               thumbColor="#FFF"
             />
@@ -365,7 +387,10 @@ export default function ProfileScreen() {
             </View>
             <Text style={[sr.label, { flex: 1 }]}>Kouraj Check-ins</Text>
             <Switch
-              value={kourajCI} onValueChange={setKourajCI}
+              value={kourajCI} onValueChange={v => {
+                setKourajCI(v);
+                if (uid) supabase.from('profiles').update({ kouraj_checkins_on: v }).eq('id', uid).then(() => {});
+              }}
               trackColor={{ true: Colors.teal, false: '#333' }}
               thumbColor="#FFF"
             />

@@ -369,6 +369,7 @@ export default function CommunityScreen() {
   const user = useUserStore(s => s.user);
   const [groups,      setGroups]      = useState<Group[]>([]);
   const [posts,       setPosts]       = useState<Post[]>([]);
+  const [loaded,      setLoaded]      = useState(false);   // true once first fetch completes
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [refreshing,  setRefreshing]  = useState(false);
   const [postOpen,    setPostOpen]    = useState(false);
@@ -406,6 +407,7 @@ export default function CommunityScreen() {
       author_name: profileMap.get(p.user_id)?.name ?? 'Fòs Member',
       author_city: profileMap.get(p.user_id)?.city ?? null,
     })) as Post[]);
+    setLoaded(true);
     setRefreshing(false);
   }, [activeGroup]);
 
@@ -432,8 +434,8 @@ export default function CommunityScreen() {
     fetchPosts();
   }
 
-  // Sample posts for empty state
-  const SAMPLE_POSTS: Post[] = posts.length === 0 ? [
+  // Show sample posts only after first load completes and feed is genuinely empty
+  const SAMPLE_POSTS: Post[] = loaded && posts.length === 0 ? [
     {
       id: 's1', user_id: '', content: 'Just finished my first Pull Day session on Fòs! Men anpil chay pa lou 💪🇭🇹',
       group_slug: 'miami-ayisyen', post_type: 'workout_share',
@@ -493,8 +495,8 @@ export default function CommunityScreen() {
             {/* Feed header */}
             <Text style={s.section}>
               {activeGroup
-                ? groups.find(g => g.slug === activeGroup)?.name ?? 'Community'
-                : 'All Groups'}
+                ? (groups.find(g => g.slug === activeGroup)?.name ?? 'Feed')
+                : 'Recent Posts'}
             </Text>
           </View>
         }

@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { askKouraj, KourajMessage } from '@/lib/anthropic';
 import { useUserStore } from '@/stores/userStore';
+import { useNutritionStore } from '@/stores/nutritionStore';
 import { supabase } from '@/lib/supabase';
 
 interface SessionSummary {
@@ -9,30 +10,50 @@ interface SessionSummary {
   total_volume_kg: number | null;
 }
 
-function buildGreeting(name: string, streak: number, lang: string): string {
-  const hour = new Date().getHours();
-  const first = name.split(' ')[0];
+const MAX_HISTORY = 12; // keep last 12 messages to avoid huge API payloads
 
-  const greetings: Record<string, { morning: string; evening: string }> = {
-    en: { morning: `Bonjou ${first}! ☀️`, evening: `Bonswa ${first}! 🌙` },
-    fr: { morning: `Bonjou ${first}! ☀️`, evening: `Bonswa ${first}! 🌙` },
-    ht: { morning: `Bonjou ${first}! ☀️`, evening: `Bonswa ${first}! 🌙` },
+function buildGreeting(name: string, streak: number, lang: string): string {
+  const hour  = new Date().getHours();
+  const first = name?.split(' ')[0] ?? 'chè zanmi';
+
+  const isMorning = hour < 17;
+
+  const copy: Record<string, { morning: string; evening: string; streakHigh: string; streakLow: string; fresh: string }> = {
+    en: {
+      morning:    `Good morning, ${first}! ☀️`,
+      evening:    `Good evening, ${first}! 🌙`,
+      streakHigh: `${streak} days straight — you're on fire, ${first}! Ti pa ti pa, ou rive lwen 🔥`,
+      streakLow:  `You're on a ${streak}-day streak, ${first}. Ready to keep it going today?`,
+      fresh:      `Hey ${first}! I'm Kouraj, your personal fitness coach. What can I help you with today? 💪`,
+    },
+    fr: {
+      morning:    `Bonjou ${first} ! ☀️`,
+      evening:    `Bonswa ${first} ! 🌙`,
+      streakHigh: `${streak} jours d'affilée — ou se yon bèt, ${first}! Continue comme ça 🔥`,
+      streakLow:  `${streak} jours consécutifs, ${first}. Prêt à continuer aujourd'hui ?`,
+      fresh:      `Bonjou ${first} ! Mwen se Kouraj, kòch fitness pèsonèl ou a. Kijan mwen ka ede ou jodi a ? 💪`,
+    },
+    ht: {
+      morning:    `Bonjou ${first}! ☀️`,
+      evening:    `Bonswa ${first}! 🌙`,
+      streakHigh: `${streak} jou konsekitif — ou se yon bèt, chè ${first}! Ti pa ti pa, ou rive lwen 🔥`,
+      streakLow:  `Ou sou yon ${streak}-jou streak, ${first}. Pare pou kontinye jodi a?`,
+      fresh:      `Sak pase ${first}! Mwen se Kouraj — kòch pèsonèl ou. Kisa mwen ka fè pou ou jodi a? 💪`,
+    },
   };
 
-  const g = greetings[lang] ?? greetings.en;
-  const timeGreet = hour < 17 ? g.morning : g.evening;
+  const t = copy[lang] ?? copy.en;
+  const greet = isMorning ? t.morning : t.evening;
 
-  if (streak >= 7) {
-    return `${timeGreet} ${streak} jou konsekitif — ou se yon bèt, chè! Ti pa ti pa, ou rive lwen 🔥`;
-  }
-  if (streak > 0) {
-    return `${timeGreet} Ou sou yon ${streak}-jou streak. Ready to keep it going today?`;
-  }
-  return `${timeGreet} Kijan ou rele? I'm Kouraj — your personal fitness coach. What can I help you with today? 💪`;
+  if (streak >= 7) return `${greet} ${t.streakHigh}`;
+  if (streak > 0)  return `${greet} ${t.streakLow}`;
+  return t.fresh;
 }
 
 export function useKouraj() {
-  const user    = useUserStore(s => s.user);
+  const user          = useUserStore(s => s.user);
+  const getNutrition  = useNutritionStore(s => s.getDay);
+
   const [messages,   setMessages]   = useState<KourajMessage[]>([]);
   const [isLoading,  setIsLoading]  = useState(false);
   const [error,      setError]      = useState<string | null>(null);
@@ -40,7 +61,6 @@ export function useKouraj() {
   const [recentSess, setRecentSess] = useState<SessionSummary[]>([]);
   const initialised = useRef(false);
 
-  // Load context from Supabase once
   useEffect(() => {
     if (!user?.id || initialised.current) return;
     initialised.current = true;
@@ -53,10 +73,12 @@ export function useKouraj() {
       .order('started_at', { ascending: false })
       .limit(10)
       .then(({ data }) => {
-        if (!data) return;
+        if (!data) {
+          setMessages([{ role: 'assistant', content: buildGreeting(user.name, 0, user.language) }]);
+          return;
+        }
         setRecentSess(data.slice(0, 3) as SessionSummary[]);
 
-        // Compute streak
         const today = new Date(); today.setHours(0, 0, 0, 0);
         const days  = new Set(data.map(s => s.started_at.split('T')[0]));
         let s = 0;
@@ -66,19 +88,30 @@ export function useKouraj() {
           else if (i > 0) break;
         }
         setStreak(s);
-
-        // Auto-send greeting as first assistant message
-        const greeting = buildGreeting(user.name, s, user.language);
-        setMessages([{ role: 'assistant', content: greeting }]);
-      });
+        setMessages([{ role: 'assistant', content: buildGreeting(user.name, s, user.language) }]);
+      })
+;
   }, [user?.id]);
 
   const send = useCallback(async (text: string) => {
     if (!user || isLoading) return;
 
-    const userMsg: KourajMessage  = { role: 'user', content: text };
-    const history = [...messages, userMsg];
-    setMessages(history);
+    // Get today's nutrition for context
+    const today    = new Date().toISOString().split('T')[0];
+    const todayLog = getNutrition(today);
+    const todayNutrition = todayLog.entries.length > 0
+      ? {
+          kcal:    todayLog.entries.reduce((s, e) => s + e.calories, 0),
+          protein: todayLog.entries.reduce((s, e) => s + e.protein_g, 0),
+          foods:   todayLog.entries.map(e => e.food_name),
+        }
+      : null;
+
+    const userMsg: KourajMessage = { role: 'user', content: text };
+    // Trim history to last MAX_HISTORY messages to control API payload size
+    const trimmed = messages.slice(-MAX_HISTORY);
+    const history = [...trimmed, userMsg];
+    setMessages(prev => [...prev.slice(-MAX_HISTORY), userMsg]);
     setIsLoading(true);
     setError(null);
 
@@ -88,18 +121,17 @@ export function useKouraj() {
         language:       user.language,
         goal:           user.goal ?? 'active',
         recentSessions: recentSess,
-        todayNutrition: null,
+        todayNutrition,
         currentStreak:  streak,
       });
-      setMessages([...history, { role: 'assistant', content: reply }]);
+      setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch (e: any) {
-      setError(e.message ?? 'Something went wrong. Try again.');
-      // Remove the user message so they can retry
-      setMessages(messages);
+      setError(e.message ?? 'Could not reach Kouraj. Check your connection.');
+      setMessages(prev => prev.slice(0, -1)); // remove the user message so they can retry
     } finally {
       setIsLoading(false);
     }
-  }, [messages, user, isLoading, recentSess, streak]);
+  }, [messages, user, isLoading, recentSess, streak, getNutrition]);
 
   const reset = useCallback(() => {
     setMessages([]);

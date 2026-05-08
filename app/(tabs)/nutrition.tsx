@@ -10,6 +10,7 @@ import { FontSize } from '@/constants/fonts';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
 import { Card } from '@/components/ui/Card';
 import { i18n } from '@/lib/i18n';
+import { useUserStore } from '@/stores/userStore';
 import { useNutritionStore, MealType, FoodEntry } from '@/stores/nutritionStore';
 import { HAITIAN_FOODS, HaitianFood } from '@/constants/haitian-foods-db';
 
@@ -344,17 +345,27 @@ const MACRO_GOALS = {
 
 const MEALS: MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
 
+const GOAL_BY_TARGET: Record<string, { kcal: number; protein: number; carbs: number; fat: number }> = {
+  muscle:      { kcal: 2800, protein: 180, carbs: 280, fat: 80 },
+  weight_loss: { kcal: 1800, protein: 150, carbs: 150, fat: 60 },
+  toned:       { kcal: 2200, protein: 160, carbs: 200, fat: 70 },
+  active:      { kcal: 2400, protein: 160, carbs: 240, fat: 75 },
+};
+
 export default function NutritionScreen() {
+  const user = useUserStore(s => s.user);
   const [date,        setDate]        = useState(todayStr());
   const [addMeal,     setAddMeal]     = useState<MealType | null>(null);
   const [refreshing,  setRefreshing]  = useState(false);
 
   const { getDay, addEntry, removeEntry, addWater, removeWater } = useNutritionStore();
+  // Re-read day on each render so it updates after entries are added
   const day = getDay(date);
 
-  // Simple goal defaults (would come from user profile in full app)
-  const kcalGoal   = 2400;
-  const macroGoal  = { protein: 160, carbs: 240, fat: 75 };
+  // Goals derived from user's fitness objective
+  const goals     = GOAL_BY_TARGET[user?.goal ?? 'active'] ?? GOAL_BY_TARGET.active;
+  const kcalGoal  = goals.kcal;
+  const macroGoal = { protein: goals.protein, carbs: goals.carbs, fat: goals.fat };
 
   const totals = day.entries.reduce(
     (acc, e) => ({
@@ -372,7 +383,13 @@ export default function NutritionScreen() {
     <>
       <ScreenWrapper
         scrollable
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => setRefreshing(false)} tintColor={Colors.teal} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 600); }}
+            tintColor={Colors.teal}
+          />
+        }
       >
         {/* ── Header ── */}
         <Text style={s.heading}>{i18n.t('nutrition.title')} 🥗</Text>
