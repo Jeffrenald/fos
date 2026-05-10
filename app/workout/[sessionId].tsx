@@ -429,9 +429,34 @@ export default function WorkoutSessionScreen() {
         await supabase.from('exercise_logs').insert(logs);
       }
 
-      router.replace('/(tabs)');
+      // Offer to share to community
+      const mins    = Math.round(duration / 60);
+      const vol     = Math.round(volume * 10) / 10;
+      const tmplName = sessionLabel.replace(/\d+\/\d+/, '').trim() || 'Workout';
+      Alert.alert(
+        'Session Complete! 💪',
+        `${tmplName} · ${mins} min${vol > 0 ? ` · ${vol}kg` : ''}`,
+        [
+          { text: 'Done', onPress: () => router.replace('/(tabs)') },
+          {
+            text: 'Share to Kominote 🇭🇹',
+            onPress: async () => {
+              if (user?.id) {
+                await supabase.from('posts').insert({
+                  user_id:      user.id,
+                  content:      `Just finished ${tmplName}! ${mins} min${vol > 0 ? `, ${vol}kg lifted` : ''}. Ti pa ti pa, ou rive lwen 💪🇭🇹`,
+                  post_type:    'workout_share',
+                  workout_data: { Duration: `${mins} min`, ...(vol > 0 ? { Volume: `${vol} kg` } : {}), Exercises: exercises.length },
+                });
+              }
+              router.replace('/(tabs)/community');
+            },
+          },
+        ]
+      );
     } catch (e) {
       console.error(e);
+      router.replace('/(tabs)');
     } finally {
       setSaving(false);
     }

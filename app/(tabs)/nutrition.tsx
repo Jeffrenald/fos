@@ -153,6 +153,7 @@ function AddFoodSheet({
   visible: boolean; mealType: MealType | null; date: string; onClose: () => void;
 }) {
   const addEntry = useNutritionStore(s => s.addEntry);
+  const userId   = useUserStore(s => s.user?.id);
   const [search, setSearch] = useState('');
 
   const filtered = HAITIAN_FOODS.filter(f =>
@@ -172,7 +173,7 @@ function AddFoodSheet({
       carbs_g:    food.c,
       fat_g:      food.f,
       meal_type:  mealType,
-    });
+    }, userId);
     onClose();
   }
 

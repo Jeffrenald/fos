@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { supabase } from '@/lib/supabase';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -23,13 +24,12 @@ export interface DayLog {
 }
 
 interface NutritionStore {
-  logs:        Record<string, DayLog>;
-  addEntry:    (date: string, meal: MealType, entry: Omit<FoodEntry, 'id'>) => void;
-  removeEntry: (date: string, entryId: string) => void;
-  addWater:    (date: string) => void;
-  removeWater: (date: string) => void;
-  getDay:      (date: string) => DayLog;
-  // Prune logs older than 30 days to keep storage lean
+  logs:         Record<string, DayLog>;
+  addEntry:     (date: string, meal: MealType, entry: Omit<FoodEntry, 'id'>, userId?: string) => void;
+  removeEntry:  (date: string, entryId: string) => void;
+  addWater:     (date: string) => void;
+  removeWater:  (date: string) => void;
+  getDay:       (date: string) => DayLog;
   pruneOldLogs: () => void;
 }
 
@@ -42,17 +42,31 @@ export const useNutritionStore = create<NutritionStore>()(
     (set, get) => ({
       logs: {},
 
-      addEntry: (date, meal, entry) => {
+      addEntry: (date, meal, entry, userId) => {
+        const id   = `${Date.now()}-${Math.random()}`;
+        const full = { ...entry, meal_type: meal, id };
+
+        // Update local state immediately (optimistic)
         const logs = { ...get().logs };
         if (!logs[date]) logs[date] = makeDayLog(date);
-        logs[date] = {
-          ...logs[date],
-          entries: [
-            ...logs[date].entries,
-            { ...entry, meal_type: meal, id: `${Date.now()}-${Math.random()}` },
-          ],
-        };
+        logs[date] = { ...logs[date], entries: [...logs[date].entries, full] };
         set({ logs });
+
+        // Sync to Supabase in background
+        if (userId) {
+          supabase.from('nutrition_logs').insert({
+            user_id:    userId,
+            logged_date: date,
+            meal_type:  meal,
+            food_name:  entry.food_name,
+            food_id:    entry.food_id,
+            is_haitian: entry.isHaitian,
+            calories:   entry.calories,
+            protein_g:  entry.protein_g,
+            carbs_g:    entry.carbs_g,
+            fat_g:      entry.fat_g,
+          }).then(() => {});
+        }
       },
 
       removeEntry: (date, entryId) => {

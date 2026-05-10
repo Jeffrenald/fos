@@ -395,14 +395,39 @@ export default function ProgressScreen() {
             <Ionicons name="camera-outline" size={24} color={Colors.teal} />
             <Text style={s.photoAddText}>{i18n.t('progress.addPhoto')}</Text>
           </TouchableOpacity>
-          {/* Locked slots */}
-          {[1, 2, 3].map(n => (
+            {[1, 2, 3].map(n => (
             <View key={n} style={s.photoLocked}>
               <Ionicons name="lock-closed-outline" size={20} color="#333" />
               <Text style={s.photoLockedText}>Add a photo{'\n'}to unlock</Text>
             </View>
           ))}
         </View>
+
+        {/* ── Session history ── */}
+        <Text style={[s.sectionTitle, { marginTop: 8 }]}>Session History</Text>
+        {sessions.length === 0 ? (
+          <Card style={s.emptyCard}>
+            <Text style={s.emptyText}>Complete your first workout to see your history here.</Text>
+          </Card>
+        ) : (
+          sessions.slice(0, 10).map((sess, i) => {
+            const d = new Date(sess.started_at);
+            const dateStr = d.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+            const mins = sess.duration_seconds ? Math.round(sess.duration_seconds / 60) : null;
+            return (
+              <View key={i} style={s.histRow}>
+                <View style={s.histDot} />
+                <View style={{ flex: 1 }}>
+                  <Text style={s.histDate}>{dateStr}</Text>
+                  <Text style={s.histMeta}>
+                    {[mins ? `${mins} min` : null, sess.total_volume_kg ? `${sess.total_volume_kg} kg` : null].filter(Boolean).join(' · ') || 'Completed'}
+                  </Text>
+                </View>
+                <Ionicons name="checkmark-circle" size={18} color={Colors.teal} />
+              </View>
+            );
+          })
+        )}
 
       </ScreenWrapper>
 
@@ -480,6 +505,12 @@ const s = StyleSheet.create({
   // Empty
   emptyCard: { alignItems: 'center', paddingVertical: 24, marginBottom: 16 },
   emptyText: { color: '#555', fontSize: FontSize.bodySm, textAlign: 'center', fontStyle: 'italic', lineHeight: 20 },
+
+  // Session history
+  histRow:  { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: '#1C1C1E', borderRadius: 12, borderWidth: 0.5, borderColor: '#252528', padding: 12, marginBottom: 8 },
+  histDot:  { width: 8, height: 8, borderRadius: 4, backgroundColor: Colors.teal, flexShrink: 0, shadowColor: Colors.teal, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 4, elevation: 2 },
+  histDate: { color: '#FFFFFF', fontSize: FontSize.body, fontFamily: 'Inter_500Medium', marginBottom: 2 },
+  histMeta: { color: '#666', fontSize: FontSize.caption },
 
   // Photos
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 24 },

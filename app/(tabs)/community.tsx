@@ -578,6 +578,81 @@ const np = StyleSheet.create({
   postBtnText: { color: Colors.background, fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
 });
 
+// ─── Leaderboard ─────────────────────────────────────────────────────────────
+
+interface LeaderEntry { name: string; sessions: number; volume: number; }
+
+function Leaderboard() {
+  const [leaders, setLeaders] = useState<LeaderEntry[]>([]);
+
+  useEffect(() => {
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0,0,0,0);
+
+    supabase
+      .from('workout_sessions')
+      .select('user_id, total_volume_kg, completed_at')
+      .gte('started_at', weekStart.toISOString())
+      .not('completed_at', 'is', null)
+      .then(async ({ data: sessions }) => {
+        if (!sessions?.length) return;
+        // Aggregate by user
+        const map = new Map<string, { sessions: number; volume: number }>();
+        sessions.forEach(s => {
+          const cur = map.get(s.user_id) ?? { sessions: 0, volume: 0 };
+          map.set(s.user_id, { sessions: cur.sessions + 1, volume: cur.volume + (s.total_volume_kg ?? 0) });
+        });
+        const top5 = [...map.entries()]
+          .sort((a, b) => b[1].volume - a[1].volume)
+          .slice(0, 5);
+
+        const uids = top5.map(([uid]) => uid);
+        const { data: profiles } = await supabase.from('profiles').select('id,name').in('id', uids);
+        const pm = new Map(profiles?.map(p => [p.id, p.name]) ?? []);
+
+        setLeaders(top5.map(([uid, stats]) => ({
+          name:     pm.get(uid) ?? 'Fòs Member',
+          sessions: stats.sessions,
+          volume:   Math.round(stats.volume),
+        })));
+      });
+  }, []);
+
+  if (!leaders.length) return null;
+
+  const MEDALS = ['🥇','🥈','🥉','4️⃣','5️⃣'];
+
+  return (
+    <View style={lb.wrap}>
+      <Text style={lb.title}>🏆 This Week's Leaders</Text>
+      {leaders.map((l, i) => (
+        <View key={i} style={[lb.row, i === 0 && lb.rowFirst]}>
+          <Text style={lb.medal}>{MEDALS[i]}</Text>
+          <Avatar name={l.name} size={30} />
+          <Text style={[lb.name, i === 0 && { color: '#F0B040' }]} numberOfLines={1}>{l.name}</Text>
+          <View style={lb.stats}>
+            <Text style={lb.vol}>{l.volume > 0 ? `${l.volume}kg` : '—'}</Text>
+            <Text style={lb.sess}>{l.sessions} sessions</Text>
+          </View>
+        </View>
+      ))}
+    </View>
+  );
+}
+
+const lb = StyleSheet.create({
+  wrap:     { backgroundColor: E.card, borderRadius: 16, borderWidth: 0.5, borderColor: E.line, marginBottom: 16, overflow: 'hidden' },
+  title:    { color: '#FFFFFF', fontSize: FontSize.body, fontFamily: 'Inter_500Medium', padding: 14, borderBottomWidth: 0.5, borderBottomColor: E.line },
+  row:      { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: '#1A1A1C' },
+  rowFirst: { backgroundColor: 'rgba(240,176,64,0.05)' },
+  medal:    { fontSize: 16, width: 24 },
+  name:     { flex: 1, color: '#CCCCCC', fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
+  stats:    { alignItems: 'flex-end' },
+  vol:      { color: Colors.teal, fontSize: FontSize.caption, fontFamily: 'Inter_500Medium' },
+  sess:     { color: '#555', fontSize: 10, marginTop: 1 },
+});
+
 // ─── Main screen ──────────────────────────────────────────────────────────────
 
 export default function CommunityScreen() {
@@ -676,6 +751,8 @@ export default function CommunityScreen() {
             </View>
 
             <ChallengeBanner onJoin={() => Alert.alert('Joined! 💪', 'Complete 4 workouts this week, frè m!')} />
+
+            <Leaderboard />
 
             <Text style={s.section}>Groups</Text>
             <GroupsStrip groups={groups} active={activeGroup} onSelect={s => setActiveGroup(p => p === s ? null : s)} />
