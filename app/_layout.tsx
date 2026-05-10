@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Platform } from 'react-native';
+import { Platform, View } from 'react-native';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -11,6 +11,8 @@ import {
   scheduleMissedSession,
 } from '@/lib/notifications';
 import { useUserStore } from '@/stores/userStore';
+import { OfflineBanner } from '@/components/ui/OfflineBanner';
+import { Colors } from '@/constants/Colors';
 
 export { ErrorBoundary } from 'expo-router';
 
@@ -32,7 +34,6 @@ export default function RootLayout() {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
 
-  // Request notification permission and schedule reminders
   useEffect(() => {
     if (!user?.id) return;
     requestNotificationPermission().then(granted => {
@@ -48,12 +49,16 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style="light" />
-      <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="(auth)"              options={{ headerShown: false }} />
-        <Stack.Screen name="(tabs)"              options={{ headerShown: false }} />
-        <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
+      <View style={{ flex: 1, backgroundColor: Colors.background }}>
+        {/* Global offline banner — shows on every screen when connection lost */}
+        <OfflineBanner />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="(auth)"              options={{ headerShown: false }} />
+          <Stack.Screen name="(tabs)"              options={{ headerShown: false }} />
+          <Stack.Screen name="workout/[sessionId]" options={{ headerShown: false }} />
+          <Stack.Screen name="+not-found" />
+        </Stack>
+      </View>
     </SafeAreaProvider>
   );
 }

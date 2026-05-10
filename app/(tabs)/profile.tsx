@@ -6,6 +6,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { Share } from 'react-native';
 import { Colors, Spacing, Radius } from '@/constants/Colors';
 import { FontSize } from '@/constants/fonts';
 import { ScreenWrapper } from '@/components/ui/ScreenWrapper';
@@ -395,6 +396,21 @@ export default function ProfileScreen() {
               thumbColor="#FFF"
             />
           </View>
+        </Section>
+
+        {/* ── Community ── */}
+        <Section title="Community">
+          <SettingRow
+            icon="person-add-outline"
+            label="Invite Friends"
+            value="Earn rewards"
+            onPress={async () => {
+              const code = (user?.id ?? '').slice(0, 8).toUpperCase();
+              await Share.share({
+                message: `Join me on Fòs — the fitness app built for the Haitian diaspora! 🇭🇹\n\nDownload and use my invite code: FOS-${code}\n\nTi pa ti pa, ou rive lwen 💪`,
+              });
+            }}
+          />
         </Section>
 
         {/* ── Account ── */}

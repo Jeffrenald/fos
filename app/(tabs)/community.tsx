@@ -76,15 +76,31 @@ const av = StyleSheet.create({
   text: { color: '#FFFFFF', fontFamily: 'Inter_500Medium' },
 });
 
+// ─── Cultural calendar ────────────────────────────────────────────────────────
+
+function getCulturalChallenge() {
+  const now    = new Date();
+  const month  = now.getMonth() + 1; // 1-12
+  const day    = now.getDate();
+  const daysLeft = 7 - now.getDay(); // days until end of week
+
+  if (month === 1 && day <= 7)
+    return { name: 'Soup Joumou Challenge 🍲', desc: 'Complete 4 workouts to celebrate Haitian Independence. Soup Joumou fuel only!', goal: 4, daysLeft };
+  if (month === 5 && day >= 15 && day <= 22)
+    return { name: 'Drapo Ayiti Challenge 🇭🇹', desc: 'Flag Day week — train with pride. 5 sessions for the community!', goal: 5, daysLeft };
+  if (month === 10 && day >= 14 && day <= 20)
+    return { name: 'Heritage Week Challenge ✊', desc: 'Celebrate Haitian heritage with 4 workouts this week.', goal: 4, daysLeft };
+  return { name: 'Semèn Fò — Strong Week', desc: 'Complete 4 workouts this week with your community.', goal: 4, daysLeft };
+}
+
 // ─── Weekly challenge ─────────────────────────────────────────────────────────
 
-const CHALLENGE = {
-  name: 'Semèn Fò — Strong Week',
-  desc: 'Complete 4 workouts this week with your community',
-  pct: 0.71, daysLeft: 3, joined: 847, total: 1200,
-};
+function ChallengeBanner({ onJoin, userSessions }: { onJoin: () => void; userSessions: number }) {
+  const challenge = getCulturalChallenge();
+  const personalPct = Math.min(userSessions / challenge.goal, 1);
+  // Community aggregate: static but realistic
+  const communityPct = 0.71;
 
-function ChallengeBanner({ onJoin }: { onJoin: () => void }) {
   return (
     <View style={ch.card}>
       <View style={ch.flagBar}>
@@ -94,20 +110,35 @@ function ChallengeBanner({ onJoin }: { onJoin: () => void }) {
       <View style={ch.body}>
         <View style={ch.topRow}>
           <View style={{ flex: 1 }}>
-            <Text style={ch.name}>{CHALLENGE.name}</Text>
-            <Text style={ch.desc}>{CHALLENGE.desc}</Text>
+            <Text style={ch.name}>{challenge.name}</Text>
+            <Text style={ch.desc}>{challenge.desc}</Text>
           </View>
           <View style={ch.pill}>
-            <Text style={ch.pillText}>{CHALLENGE.daysLeft}d left</Text>
+            <Text style={ch.pillText}>{challenge.daysLeft}d left</Text>
           </View>
         </View>
+
+        {/* Your personal progress */}
+        <Text style={ch.label}>Your progress</Text>
         <View style={ch.track}>
-          <View style={[ch.fill, { width: `${CHALLENGE.pct * 100}%` as any }]} />
+          <View style={[ch.fill, { width: `${personalPct * 100}%` as any }]} />
         </View>
-        <Text style={ch.sub}>{CHALLENGE.joined.toLocaleString()} / {CHALLENGE.total.toLocaleString()} members joined</Text>
-        <TouchableOpacity style={ch.btn} onPress={onJoin} activeOpacity={0.85}>
-          <Text style={ch.btnText}>Join Challenge</Text>
-          <Ionicons name="arrow-forward" size={14} color={Colors.background} />
+        <Text style={ch.sub}>{userSessions} / {challenge.goal} sessions this week</Text>
+
+        {/* Community progress */}
+        <Text style={ch.label}>Community</Text>
+        <View style={[ch.track, { marginBottom: 12 }]}>
+          <View style={[ch.fill, { width: `${communityPct * 100}%` as any, backgroundColor: '#5A78FF' }]} />
+        </View>
+
+        <TouchableOpacity
+          style={[ch.btn, personalPct >= 1 && ch.btnDone]}
+          onPress={onJoin} activeOpacity={0.85}
+        >
+          <Text style={ch.btnText}>
+            {personalPct >= 1 ? '🏆 Challenge Complete!' : 'Join Challenge'}
+          </Text>
+          {personalPct < 1 && <Ionicons name="arrow-forward" size={14} color={Colors.background} />}
         </TouchableOpacity>
       </View>
     </View>
@@ -125,7 +156,9 @@ const ch = StyleSheet.create({
   pillText: { color: '#F0B040', fontSize: 10, fontFamily: 'Inter_500Medium' },
   track:  { height: 4, backgroundColor: E.raised, borderRadius: 2, overflow: 'hidden', marginBottom: 6 },
   fill:   { height: 4, backgroundColor: Colors.teal, borderRadius: 2, shadowColor: Colors.teal, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.6, shadowRadius: 4, elevation: 2 },
-  sub:    { color: '#444', fontSize: 10, marginBottom: 12 },
+  label:  { color: '#555', fontSize: 9, fontFamily: 'Inter_500Medium', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 5 },
+  sub:    { color: '#444', fontSize: 10, marginBottom: 10 },
+  btnDone:{ backgroundColor: '#3FCC93' },
   btn:    { backgroundColor: Colors.teal, borderRadius: 10, paddingVertical: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, shadowColor: Colors.teal, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 8, elevation: 4 },
   btnText:{ color: Colors.background, fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
 });
@@ -658,14 +691,29 @@ const lb = StyleSheet.create({
 export default function CommunityScreen() {
   const insets = useSafeAreaInsets();
   const user   = useUserStore(s => s.user);
-  const [groups,      setGroups]      = useState<Group[]>([]);
-  const [posts,       setPosts]       = useState<Post[]>([]);
-  const [loaded,      setLoaded]      = useState(false);
-  const [activeGroup, setActiveGroup] = useState<string | null>(null);
-  const [postFilter,  setPostFilter]  = useState<PostFilter>('all');
-  const [refreshing,  setRefreshing]  = useState(false);
-  const [postOpen,    setPostOpen]    = useState(false);
-  const [commentPost, setCommentPost] = useState<Post | null>(null);
+  const [groups,       setGroups]      = useState<Group[]>([]);
+  const [posts,        setPosts]       = useState<Post[]>([]);
+  const [loaded,       setLoaded]      = useState(false);
+  const [activeGroup,  setActiveGroup] = useState<string | null>(null);
+  const [postFilter,   setPostFilter]  = useState<PostFilter>('all');
+  const [refreshing,   setRefreshing]  = useState(false);
+  const [postOpen,     setPostOpen]    = useState(false);
+  const [commentPost,  setCommentPost] = useState<Post | null>(null);
+  const [weekSessions, setWeekSessions] = useState(0);
+
+  // Fetch user's sessions this week for challenge tracking
+  useEffect(() => {
+    if (!user?.id) return;
+    const weekStart = new Date();
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+    supabase.from('workout_sessions')
+      .select('id', { count: 'exact' })
+      .eq('user_id', user.id)
+      .gte('started_at', weekStart.toISOString())
+      .not('completed_at', 'is', null)
+      .then(({ count }) => setWeekSessions(count ?? 0));
+  }, [user?.id]);
 
   const fetchGroups = useCallback(async () => {
     const { data } = await supabase.from('groups').select('slug,name,city,flag_emoji,member_count').order('member_count', { ascending: false });
@@ -750,7 +798,15 @@ export default function CommunityScreen() {
               </TouchableOpacity>
             </View>
 
-            <ChallengeBanner onJoin={() => Alert.alert('Joined! 💪', 'Complete 4 workouts this week, frè m!')} />
+            <ChallengeBanner
+              userSessions={weekSessions}
+              onJoin={() => {
+                if (weekSessions >= getCulturalChallenge().goal)
+                  Alert.alert('🏆 Defi fini!', 'You completed the challenge this week. Nou fyè de ou, frè m!');
+                else
+                  Alert.alert('Joined! 💪', `${weekSessions} / ${getCulturalChallenge().goal} done. Keep going!`);
+              }}
+            />
 
             <Leaderboard />
 

@@ -126,7 +126,14 @@ export function useKouraj() {
       });
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
     } catch (e: any) {
-      setError(e.message ?? 'Could not reach Kouraj. Check your connection.');
+      const isNetwork = e.message?.toLowerCase().includes('network') ||
+        e.message?.toLowerCase().includes('fetch') ||
+        e.message?.toLowerCase().includes('connection');
+      setError(
+        isNetwork
+          ? 'Ou offline — Kouraj bezwen koneksyon pou reponn. Check your connection and try again.'
+          : (e.message ?? 'Could not reach Kouraj. Try again.')
+      );
       setMessages(prev => prev.slice(0, -1)); // remove the user message so they can retry
     } finally {
       setIsLoading(false);

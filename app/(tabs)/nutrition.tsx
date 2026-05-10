@@ -430,6 +430,29 @@ export default function NutritionScreen() {
           </Text>
         </Card>
 
+        {/* ── Kouraj meal suggestion ── */}
+        {day.entries.length > 0 && isToday(date) && (() => {
+          const proteinGap = macroGoal.protein - Math.round(totals.protein);
+          const kcalGap    = kcalGoal - totals.kcal;
+          let tip: string | null = null;
+
+          if (proteinGap > 30)
+            tip = `You're ${proteinGap}g short on protein today. A serving of griot or tassot would close that gap, frè m 💪`;
+          else if (kcalGap > 600)
+            tip = `${kcalGap} kcal still to go — diri ak pwa or labouyi bannann are great calorie-dense options.`;
+          else if (kcalGap < -200)
+            tip = `You're ${Math.abs(kcalGap)} kcal over your goal today. Light dinner like legume would balance things out.`;
+          else if (day.waterCups < 4)
+            tip = `Only ${day.waterCups} cups of water today — aim for 8. Sak vid pa kanpe! 💧`;
+
+          return tip ? (
+            <View style={s.kourajTip}>
+              <View style={s.kourajAvatar}><Text style={s.kourajAvatarIcon}>⚡</Text></View>
+              <Text style={s.kourajTipText}>{tip}</Text>
+            </View>
+          ) : null;
+        })()}
+
         {/* ── Water tracker ── */}
         <Card style={s.waterCard}>
           <WaterTracker
@@ -478,4 +501,10 @@ const s = StyleSheet.create({
   kcalLeft:  { color: '#555', fontSize: FontSize.caption, textAlign: 'center', fontStyle: 'italic' },
 
   waterCard: { marginBottom: 16, paddingVertical: 12 },
+
+  // Kouraj meal tip
+  kourajTip:       { flexDirection: 'row', alignItems: 'flex-start', gap: 10, backgroundColor: 'rgba(0,201,167,0.06)', borderRadius: 14, borderWidth: 0.5, borderColor: 'rgba(0,201,167,0.2)', padding: 12, marginBottom: 14 },
+  kourajAvatar:    { width: 26, height: 26, borderRadius: 13, backgroundColor: Colors.teal, alignItems: 'center', justifyContent: 'center', flexShrink: 0, shadowColor: Colors.teal, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.5, shadowRadius: 6, elevation: 3 },
+  kourajAvatarIcon:{ fontSize: 13 },
+  kourajTipText:   { flex: 1, color: '#CCCCCC', fontSize: FontSize.bodySm, lineHeight: 20 },
 });

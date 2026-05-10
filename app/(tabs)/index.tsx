@@ -23,6 +23,7 @@ import { HAITIAN_PROVERBS } from '@/constants/haitian-foods-db';
 import { TEMPLATES, WorkoutTemplate } from '@/constants/exercises';
 import { DAY_LABELS, todayDayIndex } from '@/lib/planGenerator';
 import { usePlanStore } from '@/stores/planStore';
+import { checkWeeklyAdjustment, AdjustmentSuggestion } from '@/lib/planAdjustment';
 import type { Level } from '@/constants/exercises';
 import type { PlannedDay } from '@/lib/planGenerator';
 
@@ -116,7 +117,16 @@ export default function HomeScreen() {
   const [freqOpen, setFreqOpen]           = useState(false);
   const [selectedDay, setSelectedDay]     = useState<PlannedDay | null>(null);
   const [dayPreviewOpen, setDayPreview]   = useState(false);
-  const [ugOpen, setUgOpen]              = useState(false);
+  const [ugOpen,      setUgOpen]      = useState(false);
+  const [adjustment,  setAdjustment]  = useState<AdjustmentSuggestion | null>(null);
+
+  // Weekly plan adjustment check
+  useEffect(() => {
+    if (!user?.id || !plan) return;
+    checkWeeklyAdjustment(user.id, plan.frequency, user.language).then(result => {
+      if (result && result.type !== 'maintain') setAdjustment(result);
+    });
+  }, [user?.id, plan?.frequency]);
 
   const proverb   = HAITIAN_PROVERBS[new Date().getDay() % HAITIAN_PROVERBS.length];
   const firstName = user?.name?.split(' ')[0] ?? 'Sak pase';
@@ -185,6 +195,35 @@ export default function HomeScreen() {
 
       {/* ── Kouraj nudge ── */}
       <KourajNudge />
+
+      {/* ── Auto plan adjustment suggestion ── */}
+      {adjustment && (
+        <View style={s.adjustCard}>
+          <View style={s.adjustHeader}>
+            <Text style={s.adjustIcon}>📊</Text>
+            <Text style={s.adjustTitle}>
+              {adjustment.type === 'increase' ? 'Ready to level up?' : 'Consider adjusting your plan'}
+            </Text>
+            <TouchableOpacity onPress={() => setAdjustment(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close" size={16} color="#555" />
+            </TouchableOpacity>
+          </View>
+          <Text style={s.adjustMsg}>{adjustment.message}</Text>
+          {adjustment.newFreq && (
+            <View style={s.adjustActions}>
+              <TouchableOpacity style={s.adjustAccept} onPress={() => {
+                if (adjustment.newFreq) generatePlan(adjustment.newFreq, user?.level as any ?? 'intermediate');
+                setAdjustment(null);
+              }} activeOpacity={0.85}>
+                <Text style={s.adjustAcceptText}>Update Plan</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={s.adjustDismiss} onPress={() => setAdjustment(null)} activeOpacity={0.8}>
+                <Text style={s.adjustDismissText}>Keep as is</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* ── Stats 2×2 ── */}
       <View style={s.statsGrid}>
@@ -379,6 +418,18 @@ const s = StyleSheet.create({
 
   templateScroll:        { marginHorizontal: -Spacing.screenPadding, marginBottom: 20 },
   templateScrollContent: { paddingHorizontal: Spacing.screenPadding },
+
+  // Plan adjustment card
+  adjustCard: { backgroundColor: '#1C1C1E', borderRadius: 14, borderWidth: 0.5, borderColor: 'rgba(0,201,167,0.25)', padding: 14, marginBottom: 16, shadowColor: Colors.teal, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.15, shadowRadius: 8, elevation: 3 },
+  adjustHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
+  adjustIcon: { fontSize: 16 },
+  adjustTitle: { flex: 1, color: '#FFFFFF', fontSize: FontSize.body, fontFamily: 'Inter_500Medium' },
+  adjustMsg:   { color: '#AAAAAA', fontSize: FontSize.bodySm, lineHeight: 20, marginBottom: 12 },
+  adjustActions: { flexDirection: 'row', gap: 8 },
+  adjustAccept: { flex: 1, backgroundColor: Colors.teal, borderRadius: 10, paddingVertical: 10, alignItems: 'center', shadowColor: Colors.teal, shadowOffset: { width: 0, height: 0 }, shadowOpacity: 0.4, shadowRadius: 6, elevation: 3 },
+  adjustAcceptText: { color: Colors.background, fontSize: FontSize.caption, fontFamily: 'Inter_500Medium' },
+  adjustDismiss: { flex: 1, backgroundColor: '#242428', borderRadius: 10, paddingVertical: 10, alignItems: 'center', borderWidth: 0.5, borderColor: '#333' },
+  adjustDismissText: { color: '#666', fontSize: FontSize.caption, fontFamily: 'Inter_500Medium' },
 
   // Ultimate Growth card
   ugCard: {
